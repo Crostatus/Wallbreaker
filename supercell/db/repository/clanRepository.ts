@@ -199,4 +199,21 @@ export class ClanRepository {
   async delete(tag: string) {
     await this.client.query("DELETE FROM clans WHERE tag = $1", [tag]);
   }
+
+  async findOutdatedClans(staleHours: number): Promise<ClanDBO[]> {
+    const sql = `
+      SELECT c.*
+      FROM clans c
+      WHERE c.updated_at < NOW() - INTERVAL '${staleHours} hours'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM wars w
+          WHERE w.clan_tag = c.tag
+            AND w.end_time > NOW()           -- war still active
+        )
+    `;
+  
+    const res = await this.client.query(sql);
+    return res.rows as ClanDBO[];
+  }  
 }

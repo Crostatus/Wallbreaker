@@ -4,6 +4,7 @@
   },
   "tasks": {
     "dev": "deno run --watch --allow-read --allow-net --allow-env main.ts",
+    "test": "deno run --watch --allow-read --allow-net --allow-env test.ts",
     "migrate": "deno run --allow-net --allow-read --allow-env supercell/db/migrate.ts"
   },
   "imports": {

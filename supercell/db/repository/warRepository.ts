@@ -192,4 +192,17 @@ export class WarRepository {
     
         await this.client.query(sql, values);
     }      
+
+    async findActiveOrRecentWars(): Promise<WarDBO[]> {
+      const sql = `
+        SELECT *
+        FROM wars
+        WHERE start_time <= NOW()
+          AND NOW() <= end_time + INTERVAL '10 minutes'
+      `;
+    
+      const res = await this.client.query(sql);
+      return res.rows as WarDBO[];
+    }
+    
 }

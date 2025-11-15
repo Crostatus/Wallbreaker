@@ -30,9 +30,12 @@ export class Repository {
   
     async connect() {
       await this.client.connect();
+      log.info("🔌 DB connected.");
     }
   
     async disconnect() {
       await this.client.end();
+      log.info("🔌 DB connection closed.");
     }
+    
 }
