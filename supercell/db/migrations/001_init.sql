@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS wars (
   clan_badge_url TEXT,
 
   enemy_clan_tag TEXT NOT NULL,
+  enemy_clan_name TEXT NOT NULL,
   enemy_clan_percentage REAL NOT NULL DEFAULT 0,
   enemy_clan_stars INTEGER NOT NULL DEFAULT 0,
   enemy_clan_badge_url TEXT,
