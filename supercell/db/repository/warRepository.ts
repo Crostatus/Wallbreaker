@@ -4,7 +4,7 @@ import { ClanWar, ClanWarMember } from "../../models/shared.ts";
 import { log } from "../../../utility/logger.ts";
 const { Client } = pkg;
 
-function asWarDBO(toParse: ClanWar): WarDBO {
+export function asWarDBO(toParse: ClanWar): WarDBO {
     return {        
         start_time: toParse.startTime,
         preparation_start_time: toParse.preparationStartTime,
@@ -17,6 +17,7 @@ function asWarDBO(toParse: ClanWar): WarDBO {
         clan_badge_url: toParse.clan.badgeUrls.large || null,
         
         enemy_clan_tag: toParse.opponent.tag,
+        enemy_clan_name: toParse.opponent.name,
         enemy_clan_percentage: toParse.opponent.destructionPercentage,
         enemy_clan_stars: toParse.opponent.stars,
         enemy_clan_badge_url: toParse.opponent.badgeUrls.large || null,
@@ -204,5 +205,16 @@ export class WarRepository {
       const res = await this.client.query(sql);
       return res.rows as WarDBO[];
     }
+
+  async getBestStarsBeforeAttack(warId: number, defenderTag: string): Promise<number> {
+    const res = await this.client.query(
+        `SELECT MAX(stars) AS best
+          FROM war_attacks
+          WHERE war_id = $1 AND defender_tag = $2`,
+        [warId, defenderTag]
+    );
+  
+    return res.rows[0]?.best ?? 0;
+  }  
     
 }

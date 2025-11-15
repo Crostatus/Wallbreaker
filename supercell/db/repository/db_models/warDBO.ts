@@ -12,6 +12,7 @@ export interface WarDBO {
     clan_badge_url: string | null;
   
     enemy_clan_tag: string;
+    enemy_clan_name: string;
     enemy_clan_percentage: number;
     enemy_clan_stars: number;
     enemy_clan_badge_url: string | null;
