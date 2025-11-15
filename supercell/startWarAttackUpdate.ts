@@ -1,8 +1,9 @@
-
-
+import { ClashBot } from './bot.ts';
+import { WarStateManager } from './warStateManager.ts';
 import { log } from "../utility/logger.ts";
 import { Repository } from "./db/repository/repository.ts";
 import { HttpClashOfClansClient } from "./httpClashOfClansClient.ts";
+import { asWarMember } from "./db/repository/warRepository.ts";
 
 const lastWarFetch = new Map<number, number>(); // warId → timestamp
 
@@ -12,9 +13,11 @@ interface WarAttackTaskConfig {
 }
 
 export function startWarAttackUpdateTask(
-  repo: Repository,
-  api: HttpClashOfClansClient,
-  config: WarAttackTaskConfig,
+    repo: Repository,
+    api: HttpClashOfClansClient,
+    warState: WarStateManager,
+    bot: ClashBot,
+    config: WarAttackTaskConfig,
 ) {
     const { intervalSeconds, ifWarCheckEverySeconds } = config;
     const ifWarCheckEveryMs = ifWarCheckEverySeconds * 1000;
@@ -41,6 +44,7 @@ export function startWarAttackUpdateTask(
 
                 if (!clan) {
                     log.warn(`Clan ${clanTag} not found in DB (skipping update).`);
+                    continue;
                 } 
                 else {
                     if (new Date(clan.updatedAt!).getTime() < new Date(war.start_time).getTime()) {
@@ -48,11 +52,11 @@ export function startWarAttackUpdateTask(
 
                         const clanRes = await api.getClan(clanTag);
                         if (clanRes.ok) {
-                        await repo.clan.insertClan(clanRes.data);
-                        await repo.clan.insertClanMembers(clanRes.data.tag, clanRes.data.memberList);
-                        log.success(`Clan ${clanTag} refreshed before war update.`);
+                            await repo.clan.insertClan(clanRes.data);
+                            await repo.clan.insertClanMembers(clanRes.data.tag, clanRes.data.memberList);
+                            log.success(`Clan ${clanTag} refreshed before war update.`);
                         } else {
-                        log.error(`Failed to refresh clan ${clanTag}: ${clanRes.error.reason}`);
+                            log.error(`Failed to refresh clan ${clanTag}: ${clanRes.error.reason}`);
                         }
                     }
                 }
@@ -76,8 +80,48 @@ export function startWarAttackUpdateTask(
                 lastWarFetch.set(war.id, Date.now());
                 
                 await repo.war.insertFullWar(warRes.data);
-
                 log.success(`🏆 War ${war.id} updated successfully.`);
+
+                const playerNameMap = new Map<string, string>();
+                for (const m of warRes.data.clan.members) {
+                    playerNameMap.set(m.tag, m.name);
+                }
+                
+                for (const m of warRes.data.opponent.members) {
+                    playerNameMap.set(m.tag, m.name);
+                }
+
+                const warSituation = [
+                    ...warRes.data.clan.members.map(m => asWarMember(war.clan_tag, m)),
+                    ...warRes.data.opponent.members.map(m => asWarMember(war.enemy_clan_tag, m)),
+                ];
+                
+                const allAttacks = warSituation.flatMap(x => x.attacks).map(a => ({
+                    attacker_tag: a.attacker_tag,                    
+                    defender_tag: a.defender_tag,
+                    stars: a.stars,
+                    percentage: a.destruction_percentage,
+                    duration: a.duration,
+                }));
+
+                const newAttacks = await warState.processWarUpdate(
+                    war.id,
+                    allAttacks
+                );
+
+                for (const atk of newAttacks) {
+                    const prevBest = await repo.war.getBestStarsBeforeAttack(war.id, atk.defender_tag);
+                    const starsGained = Math.max(0, atk.stars - prevBest);
+
+                    await bot.notifyNewAttack(clan.name, war.enemy_clan_name, {                        
+                        attacker_name: playerNameMap.get(atk.attacker_tag) || atk.attacker_tag,
+                        defender_name: playerNameMap.get(atk.defender_tag) || atk.defender_tag,
+                        stars: atk.stars,
+                        percentage: atk.percentage,
+                        duration: atk.duration,
+                        starsGained: starsGained,
+                    });
+                }
             }
         }
         catch (err) {
