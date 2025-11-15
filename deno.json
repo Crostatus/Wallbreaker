@@ -1,8 +1,15 @@
 {
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"]
+  },
   "tasks": {
-    "dev": "deno run --watch main.ts"
+    "dev": "deno run --watch --allow-read --allow-net --allow-env main.ts",
+    "migrate": "deno run --allow-net --allow-read --allow-env supercell/db/migrate.ts"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@1"
+    "@std/assert": "jsr:@std/assert@1",
+    "pg": "https://deno.land/x/postgres@v0.19.3/mod.ts",
+    "dotenv/": "https://deno.land/x/dotenv@v3.2.2/",
+    "grammy/": "https://deno.land/x/grammy@v1.20.0/"
   }
 }
