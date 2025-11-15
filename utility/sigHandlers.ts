@@ -7,7 +7,7 @@ export function setupShutdownHandlers(repo: Repository) {
       try {
         await repo.disconnect();        
       } catch (e) {
-          log.error("❌ Failed to close DB");
+          log.error("Failed to close DB");
           console.log(e);
       }
       log.info("👋 Bye bye");

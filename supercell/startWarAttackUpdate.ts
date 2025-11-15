@@ -66,7 +66,7 @@ export function startWarAttackUpdateTask(
 
                 if (elapsed < ifWarCheckEveryMs) {
                     const wait = ((ifWarCheckEveryMs - elapsed) / 1000).toFixed(1);
-                    log.debug(`⏸️ War ${war.id} fetch skipped. Need ${wait}s more.`);
+                    log.debug(`⏸️ War ${war.id} fetch skipped. Need ${wait}s more`);
                     continue;
                 }
             
@@ -125,9 +125,9 @@ export function startWarAttackUpdateTask(
             }
         }
         catch (err) {
-            log.error(`💥 War Attack Update Task crashed: ${err}`);
+            log.error(`War Attack Update Task crashed: ${err}`);
         }
     }, intervalSeconds * 1000);
 
-    log.success("🚀 War Attack Update Task is running.");
+    log.success("🚀 War Attack Update Task is running");
 }

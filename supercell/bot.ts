@@ -10,7 +10,7 @@ export class ClashBot {
     this.admins = admins;
 
     this.bot.command("start", (ctx) =>
-      ctx.reply("👋 Hello! I will notify you about new war attacks.")
+      ctx.reply("👋 Hello! I will notify you about new war attacks")
     );
 
     this.bot.catch((err) => {
@@ -50,7 +50,7 @@ export class ClashBot {
     📈 *Stars gained:* +${atk.starsGained}`;
 
     log.trace(`Sending attack notification:\n${msg}`);
-    
+
     for (const chatId of this.admins) {
       await this.bot.api.sendMessage(chatId, msg, {
         parse_mode: "Markdown",
