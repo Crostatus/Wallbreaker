@@ -3,9 +3,9 @@
     "lib": ["dom", "deno.ns"]
   },
   "tasks": {
-    "dev": "deno run --watch --allow-read --allow-net --allow-env main.ts",
-    "test": "deno run --watch --allow-read --allow-net --allow-env test.ts",
-    "migrate": "deno run --allow-net --allow-read --allow-env supercell/db/migrate.ts"
+    "dev": "deno run --watch --allow-read --allow-write --allow-import --allow-net --allow-env main.ts",
+    "test": "deno run --watch --allow-read --allow-write --allow-import --allow-net --allow-env test.ts",
+    "migrate": "deno run --allow-net --allow-read --allow-write --allow-import  --allow-env supercell/db/migrate.ts"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@1",

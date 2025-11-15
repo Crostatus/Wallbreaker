@@ -5,6 +5,8 @@ import { Repository } from "./supercell/db/repository/repository.ts";
 import { startClanUpdateTask } from "./supercell/startClanUpdateTask.ts";
 import { setupShutdownHandlers } from "./utility/sigHandlers.ts";
 import { startWarAttackUpdateTask } from "./supercell/startWarAttackUpdate.ts";
+import { ClashBot } from "./supercell/bot.ts";
+import { WarStateManager } from "./supercell/warStateManager.ts";
 const env = config();
 
 log.info("Hello world!");
@@ -17,13 +19,18 @@ setupShutdownHandlers(repo);
 await repo.connect();
 const api = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
 
+const bot = new ClashBot(env.TELEGRAM_KEY, env.TELEGRAM_ADMIN_CHAT_ID?.split(",") ?? []);
+bot.start();
+
+const warState = new WarStateManager();
+
 startClanUpdateTask(repo, api, {
     intervalSeconds: 600,
     staleHours: 12,
 });
-startWarAttackUpdateTask(repo, api, {
+startWarAttackUpdateTask(repo, api, warState, bot, {
     intervalSeconds: 10,
     ifWarCheckEverySeconds: 60,
-})
+});
   
-log.info("🚀 Background tasks running");
+log.info("Background tasks running");
