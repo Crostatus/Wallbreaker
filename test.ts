@@ -19,13 +19,37 @@ const cardsClanA = await generator.generateWarCards([
         townhall: 16,
     },
     {
-        position: 7,
+        position: 9,
         name: "Marco",
         stars: 1,
         attacksLeft: 2,
         destruction: 54,
         townhall: 15,
     },
+    {
+      position: 10,
+      name: "Maaarco",
+      stars: 3,
+      attacksLeft: 1,
+      destruction: 54,
+      townhall: 2,
+  },
+  {
+    position: 12,
+    name: "Croccabadughi",
+    stars: 2,
+    attacksLeft: 1,
+    destruction: 98,
+    townhall: 16,
+},
+{
+  position: 11,
+  name: "Croccabadughi",
+  stars: 3,
+  attacksLeft: 1,
+  destruction: 98,
+  townhall: 16,
+},
 ]);
 
 const cardsClanB = await generator.generateWarCards([
@@ -44,7 +68,28 @@ const cardsClanB = await generator.generateWarCards([
       attacksLeft: 2,
       destruction: 54,
       townhall: 15,
-  },
+  },{
+    position: 10,
+    name: "Maaarco3",
+    stars: 3,
+    attacksLeft: 1,
+    destruction: 54,
+    townhall: 2,
+},{
+  position: 8,
+  name: "Maaarco2",
+  stars: 3,
+  attacksLeft: 1,
+  destruction: 54,
+  townhall: 2,
+},{
+  position: 9,
+  name: "Maaarco1",
+  stars: 3,
+  attacksLeft: 1,
+  destruction: 54,
+  townhall: 2,
+},
 ]);
 
 const playersByClan: WarPlayersByClan = {

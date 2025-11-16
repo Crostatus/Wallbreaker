@@ -22,7 +22,7 @@ export function startClanUpdateTask(
     try {      
       const outdated = await repo.clan.findOutdatedClans(staleHours);
 
-      if (outdated.length === 0) {
+      if (outdated.length === 0) { 
         log.debug("🌙 No outdated clans found");
         return;
       }
