@@ -77,3 +77,16 @@ export function formatWarAttackNotification(
     `.trim();
 }
   
+
+export function loadFontBase64(path: string): string {
+  const bytes = Deno.readFileSync(path);
+  let binary = "";
+
+  for (const b of bytes) {
+    binary += String.fromCharCode(b);
+  }
+
+  const base64 = btoa(binary);
+
+  return `data:font/ttf;base64,${base64}`;
+}

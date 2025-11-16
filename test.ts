@@ -2,38 +2,67 @@ import { config } from "https://deno.land/x/dotenv/mod.ts";
 import { Repository } from "./supercell/db/repository/repository.ts";
 import { HttpClashOfClansClient } from "./supercell/httpClashOfClansClient.ts";
 import { log } from "./utility/logger.ts";
+import { WarPlayerCardGenerator } from "./supercell/image_generators/war_player_card_gen/warPlayerCardGenerator.ts";
 const env = config();
 
-const coc = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
 
-const playerTag = "#8RC8RQP2";
-const clanTag = "#9CJYGLJC";
+const generator = new WarPlayerCardGenerator({
+    basePath: Deno.cwd(),
+  });
+  
+  const cards = await generator.generate([
+    {
+      position: 1,
+      name: "Andrea",
+      stars: 2,
+      attacksLeft: 1,
+      destruction: 98,
+      townhall: 16,
+    },
+    {
+      position: 7,
+      name: "Marco",
+      stars: 1,
+      attacksLeft: 2,
+      destruction: 54,
+      townhall: 15,
+    },
+  ]);
+  
+  console.log("Generated cards:", cards);
+  
+  await generator.close();
+  
+// const coc = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
 
-const repo = new Repository()
-const clan = await coc.getClan(clanTag);
+// const playerTag = "#8RC8RQP2";
+// const clanTag = "#9CJYGLJC";
 
-await repo.connect();
-if(clan.ok) {
-    await repo.clan.insertClan(clan.data);
-    await repo.clan.insertClanMembers(clan.data.tag, clan.data.memberList);
-}
-else {
-    log.error(`Errore nel recupero del giocatore: ${clan.error.reason} - ${clan.error.message}`);    
-}
+// const repo = new Repository()
+// const clan = await coc.getClan(clanTag);
+
+// await repo.connect();
+// if(clan.ok) {
+//     await repo.clan.insertClan(clan.data);
+//     await repo.clan.insertClanMembers(clan.data.tag, clan.data.memberList);
+// }
+// else {
+//     log.error(`Errore nel recupero del giocatore: ${clan.error.reason} - ${clan.error.message}`);    
+// }
 
 
-const player = await coc.getPlayer(playerTag);
-if(player.ok) {
-    console.log(`🧙 Player: ${player.data.name} | TH${player.data.townHallLevel} | Trofei ${player.data.trophies}`);
-    const clan = await coc.getClan(player.data.clan!.tag);
-    if(clan.ok) {
-        console.log(clan.data.tag);
-        console.log(`🏰 Clan: ${clan.data.name} | Livello ${clan.data.clanLevel} | ${clan.data.members} membri`);
-        const war = await coc.getCurrentWar(clan.data.tag);
-        console.log("war", war);
+// const player = await coc.getPlayer(playerTag);
+// if(player.ok) {
+//     console.log(`🧙 Player: ${player.data.name} | TH${player.data.townHallLevel} | Trofei ${player.data.trophies}`);
+//     const clan = await coc.getClan(player.data.clan!.tag);
+//     if(clan.ok) {
+//         console.log(clan.data.tag);
+//         console.log(`🏰 Clan: ${clan.data.name} | Livello ${clan.data.clanLevel} | ${clan.data.members} membri`);
+//         const war = await coc.getCurrentWar(clan.data.tag);
+//         console.log("war", war);
 
-    }    
-}
-else {
-    console.error(`Errore nel recupero del giocatore: ${player.error.reason} - ${player.error.message}`);    
-}
+//     }    
+// }
+// else {
+//     console.error(`Errore nel recupero del giocatore: ${player.error.reason} - ${player.error.message}`);    
+// }
