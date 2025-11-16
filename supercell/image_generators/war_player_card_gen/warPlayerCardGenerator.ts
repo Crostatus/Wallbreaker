@@ -1,11 +1,11 @@
-import puppeteer, { Browser } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
+import { Browser } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { WarPlayerCardData } from "./types.ts";
 import { renderWarPlayerCardHTML } from "./template.ts";
-import { loadBase64, loadFontBase64, loadImageBase64 } from "../../../utility/formatting.ts";
+import { loadBase64, loadFontBase64, unpackedDateTimeSec } from "../../../utility/formatting.ts";
 import { log } from "../../../utility/logger.ts";
 
 export class WarPlayerCardGenerator {
-  private browser: Browser | null = null;
+  
   private basePath: string;
   private outputDir: string;
 
@@ -23,7 +23,7 @@ export class WarPlayerCardGenerator {
     townhalls: {},
   };
 
-  constructor(options?: { basePath?: string; outputDir?: string }) {
+  constructor(options?: { basePath?: string; outputDir?: string }, private browser: Browser | null = null) {
     this.basePath = options?.basePath ?? Deno.cwd();
     this.outputDir = options?.outputDir ?? "/tmp/war_cards";
 
@@ -35,9 +35,6 @@ export class WarPlayerCardGenerator {
     log.trace("Preloading assets...");
     
     const fontPath = `${this.basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
-    //const fontBytes = Deno.readFileSync(fontPath);
-    //this.assets.font = `data:font/ttf;base64,${btoa(String.fromCharCode(...fontBytes))}`;
-    
     this.assets.font = loadFontBase64(fontPath);
 
     const iconsPath = `${this.basePath}/supercell/image_generators/assets/icons`;
@@ -61,40 +58,15 @@ export class WarPlayerCardGenerator {
       throw new Error("Townhall 1 missing. Needed as fallback.");
     }
 
-    log.trace("✅ Assets ready.");
-  }
-
-  private async initBrowser() {
-    if (!this.browser) {
-      const executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";//Deno.env.get("PUPPETEER_EXECUTABLE_PATH");
-
-      this.browser = await puppeteer.launch({
-        headless: true,
-        executablePath,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--allow-file-access-from-files",
-          "--allow-file-access",
-          "--enable-local-file-accesses",
-          "--allow-cross-origin-auth-prompt",
-          "--disable-features=IsolateOrigins,site-per-process",
-          "--disable-site-isolation-trials",
-          `--user-data-dir=${Deno.cwd()}/.chrome-profile`,
-        ],        
-      });
-    }
-    return this.browser;
+    log.success("Assets ready.");
   }
 
   /**
    * Genera tutte le card e ritorna la lista dei path PNG sul disco.
    */
   async generate(players: WarPlayerCardData[]): Promise<string[]> {
-    const browser = await this.initBrowser();
-    const page = await browser.newPage();
+    //const browser = await this.initBrowser();
+    const page = await this.browser!.newPage();
 
     // Risoluzione retina consigliata
     await page.setViewport({
@@ -114,7 +86,7 @@ export class WarPlayerCardGenerator {
       });      
 
       const safeName = player.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-      const file = `${this.outputDir}/card_rank${player.position}_${safeName}.png`;
+      const file = `${this.outputDir}/card_rank${player.position}_${unpackedDateTimeSec()}_${safeName}.png`;
 
       await page.screenshot({ path: file });
 
@@ -122,13 +94,8 @@ export class WarPlayerCardGenerator {
     }
 
     await page.close();
-    return results;
-  }
 
-  async close() {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-    }
-  }
+    log.trace(`Generated ${results.length} war player cards.`);
+    return results;
+  } 
 }

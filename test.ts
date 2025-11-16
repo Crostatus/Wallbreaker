@@ -1,3 +1,4 @@
+import { ClashCardGenerator } from './supercell/image_generators/war_player_card_gen/clashCardGenerator.ts';
 import { config } from "https://deno.land/x/dotenv/mod.ts";
 import { Repository } from "./supercell/db/repository/repository.ts";
 import { HttpClashOfClansClient } from "./supercell/httpClashOfClansClient.ts";
@@ -5,34 +6,54 @@ import { log } from "./utility/logger.ts";
 import { WarPlayerCardGenerator } from "./supercell/image_generators/war_player_card_gen/warPlayerCardGenerator.ts";
 const env = config();
 
+const generator: ClashCardGenerator = new ClashCardGenerator();
+await generator.init();
+const cards = await generator.generateWarCards([
+    {
+        position: 1,
+        name: "Croccabadughi",
+        stars: 3,
+        attacksLeft: 1,
+        destruction: 98,
+        townhall: 16,
+    },
+    {
+        position: 7,
+        name: "Marco",
+        stars: 1,
+        attacksLeft: 2,
+        destruction: 54,
+        townhall: 15,
+    },
+]);
 
-const generator = new WarPlayerCardGenerator({
-    basePath: Deno.cwd(),
-  });
-  generator.preloadAssets();
+// const generator = new WarPlayerCardGenerator({
+//     basePath: Deno.cwd(),
+//   });
+//   generator.preloadAssets();
   
-  const cards = await generator.generate([
-    {
-      position: 1,
-      name: "Croccabadughi",
-      stars: 3,
-      attacksLeft: 1,
-      destruction: 98,
-      townhall: 16,
-    },
-    {
-      position: 7,
-      name: "Marco",
-      stars: 1,
-      attacksLeft: 2,
-      destruction: 54,
-      townhall: 15,
-    },
-  ]);
+//   const cards = await generator.generate([
+//     {
+//       position: 1,
+//       name: "Croccabadughi",
+//       stars: 3,
+//       attacksLeft: 1,
+//       destruction: 98,
+//       townhall: 16,
+//     },
+//     {
+//       position: 7,
+//       name: "Marco",
+//       stars: 1,
+//       attacksLeft: 2,
+//       destruction: 54,
+//       townhall: 15,
+//     },
+//   ]);
   
-  console.log("Generated cards:", cards);
+//   console.log("Generated cards:", cards);
   
-  await generator.close();
+//   await generator.close();
   
 // const coc = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
 
