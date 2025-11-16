@@ -14,8 +14,8 @@ const generator = new WarPlayerCardGenerator({
   const cards = await generator.generate([
     {
       position: 1,
-      name: "Andrea",
-      stars: 2,
+      name: "Croccabadughi",
+      stars: 3,
       attacksLeft: 1,
       destruction: 98,
       townhall: 16,

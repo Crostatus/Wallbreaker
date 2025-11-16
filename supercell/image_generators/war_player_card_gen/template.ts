@@ -1,10 +1,7 @@
 import { WarPlayerCardData } from "./types.ts";
 
-/**
- * Ritorna l'HTML finale della card, completamente compatibile con Puppeteer.
- */
 export function renderWarPlayerCardHTML(
-  data: WarPlayerCardData,  
+  data: WarPlayerCardData,
   assets: any
 ): string {
 
@@ -15,7 +12,7 @@ export function renderWarPlayerCardHTML(
 <meta charset="utf-8" />
 <style>
 
-  /* FONT SUPERSELL INLINE — FUNZIONA SEMPRE */
+  /* FONT SUPERCELL INLINE */
   @font-face {
     font-family: 'Clash';
     src: url('${assets.font}') format('truetype');
@@ -47,13 +44,13 @@ export function renderWarPlayerCardHTML(
     display: flex;
     overflow: hidden;
     box-shadow: 0 10px 25px #0008, inset 0 3px 6px #fff1;
-    border: 3px solid #000;
+    border: 8px solid #000;
   }
 
-  /* LEFT — municipio */
+  /* LEFT */
   .left {
     width: 420px;
-    background: #000;
+    background: #1e1e1e;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -62,16 +59,17 @@ export function renderWarPlayerCardHTML(
   .left img {
     height: 100%;
     object-fit: contain;
+    background: #1e1e1e;
   }
 
-  /* RIGHT CONTENT */
+  /* RIGHT */
   .right {
     flex: 1;
     padding: 28px;
     color: white;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 26px;
   }
 
   /* TOP ROW */
@@ -105,32 +103,25 @@ export function renderWarPlayerCardHTML(
 
   .stars {
     display: flex;
-    gap: 8px;
+    gap: 12px;
+    align-items: center;
   }
 
   .stars img {
-    width: 60px;
+    width: 110px;
   }
 
-  /* SECOND ROW */
-  .attacks-row {
+  /* DEST RU */
+  .dest-row {
     display: flex;
-    gap: 14px;
-    margin-bottom: 12px;
-  }
-
-  .attacks-row img {
-    width: 70px;
-  }
-
-  .progress-wrapper {
-    margin-top: 12px;
-    width: 100%;
+    align-items: center;
+    gap: 18px;
+    margin-top: -6px;
   }
 
   .progress-bar-bg {
-    width: 100%;
-    height: 38px;
+    height: 32px;
+    width: 420px;
     background: #0009;
     border-radius: 16px;
     overflow: hidden;
@@ -144,11 +135,21 @@ export function renderWarPlayerCardHTML(
     box-shadow: inset 0 -4px 0 #b88600;
   }
 
-  .progress-label {
-    margin-top: 8px;
-    font-size: 30px;
+  .percent-label {
     font-family: 'ClashBold';
+    font-size: 36px;
     text-shadow: 2px 2px #000;
+  }
+
+  /* ATTACCHI */
+  .attacks-row {
+    display: flex;
+    gap: 20px;
+    margin-top: 14px;
+  }
+
+  .attacks-row img {
+    width: 180px;
   }
 
 </style>
@@ -162,35 +163,47 @@ export function renderWarPlayerCardHTML(
     <img src="${assets.townhalls[data.townhall] ?? assets.townhalls['1']}">
   </div>
 
-  <!-- RIGHT -->
+  <!-- RIGHT SIDE -->
   <div class="right">
 
+    <!-- TOP ROW -->
     <div class="top-row">
-      <div class="left-top">
-        <div class="badge">#${data.position}</div>
-        <div class="name">${data.name}</div>
+
+      <!-- badge + name -->
+      <div class="left-block">
+        <div class="left-top">
+          <div class="badge">#${data.position}</div>
+          <div class="name">${data.name}</div>
+        </div>
       </div>
 
+      <!-- stelle -->
       <div class="stars">
         ${[1,2,3].map(i =>
-          `<img src="${i <= data.stars ? assets.starFull : assets.starEmpty}" />`
+          `<img src="${i <= data.stars ? assets.starFull : assets.starEmpty}">`
         ).join("")}
       </div>
+
     </div>
 
-    <div>
-      <div class="attacks-row">
-        ${Array.from({ length: data.attacksLeft }).map(() =>
-          `<img src="${assets.sword}">`
-        ).join("")}
-      </div>
+    <!-- BARRA DISTRUZIONE SOTTO IL NOME -->
+    
 
-      <div class="progress-wrapper">
-        <div class="progress-bar-bg">
-          <div class="progress-bar"></div>
-        </div>
-        <div class="progress-label">${data.destruction}% distrutto</div>
-      </div>
+  <!-- BARRA DISTRUZIONE SOTTO IL NOME -->
+  <div class="dest-row" style="${data.stars === 3 ? 'visibility:hidden;' : ''}">
+    <div class="progress-bar-bg">
+      <div class="progress-bar" style="width:${data.destruction}%"></div>
+    </div>
+    <div class="percent-label">${data.destruction}%</div>
+  </div>
+
+    
+
+    <!-- SPADINE -->
+    <div class="attacks-row">
+      ${Array.from({ length: data.attacksLeft }).map(() =>
+        `<img src="${assets.sword}">`
+      ).join("")}
     </div>
 
   </div>
@@ -198,5 +211,5 @@ export function renderWarPlayerCardHTML(
 
 </body>
 </html>
-  `;
+`;
 }
