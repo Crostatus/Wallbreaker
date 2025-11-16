@@ -1,5 +1,6 @@
 import { Bot } from "https://deno.land/x/grammy/mod.ts";
 import { log } from "../utility/logger.ts";
+import { formatWarAttackNotification, percentToBar } from "../utility/formatting.ts";
 
 export class ClashBot {
   private bot: Bot;
@@ -23,34 +24,33 @@ export class ClashBot {
     log.info("🤖 Telegram bot started");
   }
 
-  async notifyNewAttack(
+  async notifyNewAttacks(
     clanName: string,
     opponentClanName: string,
-    atk: {      
-      attacker_name: string;      
+    summary: {
+      clanStars: number;
+      clanPercentage: number;
+      oppStars: number;
+      oppPercentage: number;
+    },
+    attacks: Array<{
+      attacker_name: string;
       defender_name: string;
       stars: number;
       percentage: number;
       duration: number;
-      starsGained: number;      
-    },
+      starsGained: number;
+    }>,
   ) {
-    const msg = `
-    🔥 *New Attack!*
-
-    War: \`${clanName} VS ${opponentClanName}\`
-
-    👤 *Attacker:* ${atk.attacker_name}
-    🎯 *Defender:* ${atk.defender_name}
-
-    ⭐ *Stars:* ${atk.stars}
-    💥 *Destruction:* ${atk.percentage}%
-    ⏱️ *Duration:* ${atk.duration}s
-
-    📈 *Stars gained:* +${atk.starsGained}`;
-
-    log.trace(`Sending attack notification:\n${msg}`);
-
+    const msg = formatWarAttackNotification(
+      clanName,
+      opponentClanName,
+      summary,
+      attacks,
+    );
+  
+    if (!msg) return;
+  
     for (const chatId of this.admins) {
       await this.bot.api.sendMessage(chatId, msg, {
         parse_mode: "Markdown",

@@ -44,13 +44,14 @@ export function startClanUpdateTask(
         const fresh = res.data;
         
         await repo.clan.insertClan(fresh);
+        await repo.clan.insertClanMembers(fresh.tag, fresh.memberList);
 
-        log.success(`Clan ${clan.tag} updated successfully.`);
+        log.success(`Clan ${clan.tag} updated successfully`);
       }
     } catch (err) {
       log.error(`💥 Clan Update Task crashed: ${err}`);
     }
   }, intervalSeconds * 1000);
 
-  log.success("🚀 Clan Update Task up and running.");
+  log.success("🚀 Clan Update Task up and running");
 }

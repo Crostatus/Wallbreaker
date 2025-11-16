@@ -7,6 +7,7 @@ import { setupShutdownHandlers } from "./utility/sigHandlers.ts";
 import { startWarAttackUpdateTask } from "./supercell/startWarAttackUpdate.ts";
 import { ClashBot } from "./supercell/bot.ts";
 import { WarStateManager } from "./supercell/warStateManager.ts";
+import { startWarDiscoveryTask } from "./supercell/warScout.ts";
 const env = config();
 
 log.info("Hello world!");
@@ -28,9 +29,12 @@ startClanUpdateTask(repo, api, {
     intervalSeconds: 600,
     staleHours: 12,
 });
+startWarDiscoveryTask(repo, api, {
+    intervalHours: 1,
+});
 startWarAttackUpdateTask(repo, api, warState, bot, {
     intervalSeconds: 10,
     ifWarCheckEverySeconds: 60,
 });
   
-log.info("Background tasks running");
+log.info("Background tasks up and running!");

@@ -216,5 +216,38 @@ export class WarRepository {
   
     return res.rows[0]?.best ?? 0;
   }  
+
+  async getBestStarsForWar(warId: number): Promise<Map<string, number>> {
+    const sql = `
+      SELECT defender_tag, MAX(stars) AS best
+      FROM war_attacks
+      WHERE war_id = $1
+      GROUP BY defender_tag
+    `;
+    
+    const res = await this.client.query(sql, [warId]);
+  
+    const map = new Map<string, number>();
+    for (const row of res.rows) {
+      map.set(row.defender_tag, row.best);
+    }
+  
+    return map;
+  }
+
+  async findClansWithoutActiveWar(): Promise<string[]> {
+    const sql = `
+      SELECT c.tag
+      FROM clans c
+      LEFT JOIN wars w
+        ON w.clan_tag = c.tag
+        AND NOW() BETWEEN w.start_time AND w.end_time + INTERVAL '10 minutes'
+      WHERE w.id IS NULL
+    `;
+  
+    const res = await this.client.query(sql);
+    return res.rows.map((r: { tag: string; }) => r.tag);
+  }
+  
     
 }

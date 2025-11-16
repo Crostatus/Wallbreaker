@@ -109,19 +109,31 @@ export function startWarAttackUpdateTask(
                     allAttacks
                 );
 
-                for (const atk of newAttacks) {
-                    const prevBest = await repo.war.getBestStarsBeforeAttack(war.id, atk.defender_tag);
-                    const starsGained = Math.max(0, atk.stars - prevBest);
+                const bestStarsMap = await repo.war.getBestStarsForWar(war.id);
+                const formattedAttacks = await Promise.all(
+                    newAttacks.map(atk => {
+                        const previousBest = bestStarsMap.get(atk.defender_tag) ?? 0;
+                  
+                        return {
+                            attacker_name: playerNameMap.get(atk.attacker_tag) || atk.attacker_tag,
+                            defender_name: playerNameMap.get(atk.defender_tag) || atk.defender_tag,
+                            stars: atk.stars,
+                            percentage: atk.percentage,
+                            duration: atk.duration,
+                            starsGained: Math.max(0, atk.stars - previousBest),
+                        };
+                    })
+                );
 
-                    await bot.notifyNewAttack(clan.name, war.enemy_clan_name, {                        
-                        attacker_name: playerNameMap.get(atk.attacker_tag) || atk.attacker_tag,
-                        defender_name: playerNameMap.get(atk.defender_tag) || atk.defender_tag,
-                        stars: atk.stars,
-                        percentage: atk.percentage,
-                        duration: atk.duration,
-                        starsGained: starsGained,
-                    });
-                }
+                await bot.notifyNewAttacks(clan.name, war.enemy_clan_name, {
+                    clanStars: warRes.data.clan.stars,
+                    clanPercentage: warRes.data.clan.destructionPercentage,
+                    oppStars: warRes.data.opponent.stars,
+                    oppPercentage: warRes.data.opponent.destructionPercentage,
+                    }, 
+                    formattedAttacks
+                );
+
             }
         }
         catch (err) {
