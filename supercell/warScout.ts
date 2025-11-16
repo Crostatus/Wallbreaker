@@ -3,7 +3,7 @@ import { Repository } from "./db/repository/repository.ts";
 import { HttpClashOfClansClient } from "./httpClashOfClansClient.ts";
 
 export interface WarDiscoveryTaskConfig {
-  intervalHours: number;
+  intervalMinutes: number;
 }
 
 export function startWarDiscoveryTask(
@@ -11,10 +11,10 @@ export function startWarDiscoveryTask(
   api: HttpClashOfClansClient,
   config: WarDiscoveryTaskConfig,
 ) {
-  const intervalMs = config.intervalHours * 60 * 60 * 1000;
+  const intervalMs = config.intervalMinutes * 60 * 1000;  
 
   log.info(
-    `📅 War Discovery Task starting (interval: ${config.intervalHours} hours)…`,
+    `📅 War Discovery Task starting (interval: ${config.intervalMinutes} minutes)…`,
   );
 
   setInterval(async () => {
@@ -24,7 +24,7 @@ export function startWarDiscoveryTask(
       const clans = await repo.war.findClansWithoutActiveWar();
 
       if (clans.length === 0) {
-        log.info("🏖 No clans available for war discovery");
+        log.info("🏖 No clans available without a war");
         return;
       }
 

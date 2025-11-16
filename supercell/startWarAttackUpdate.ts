@@ -29,7 +29,8 @@ export function startWarAttackUpdateTask(
     setInterval(async () => {
         try {      
             const wars = await repo.war.findActiveOrRecentWars();
-            if (wars.length === 0) {        
+            if (wars.length === 0) {
+                log.debug("🌙 No active war found");
                 return;
             }
 

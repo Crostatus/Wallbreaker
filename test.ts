@@ -1,14 +1,15 @@
-import { ClashCardGenerator } from './supercell/image_generators/war_player_card_gen/clashCardGenerator.ts';
+import { ClashCardGenerator } from './supercell/image_generators/clashCardGenerator.ts';
 import { config } from "https://deno.land/x/dotenv/mod.ts";
 import { Repository } from "./supercell/db/repository/repository.ts";
 import { HttpClashOfClansClient } from "./supercell/httpClashOfClansClient.ts";
 import { log } from "./utility/logger.ts";
 import { WarPlayerCardGenerator } from "./supercell/image_generators/war_player_card_gen/warPlayerCardGenerator.ts";
+import { WarCardData, WarPlayersByClan } from "./supercell/image_generators/war_gen/types.ts";
 const env = config();
 
 const generator: ClashCardGenerator = new ClashCardGenerator();
 await generator.init();
-const cards = await generator.generateWarCards([
+const cardsClanA = await generator.generateWarCards([
     {
         position: 1,
         name: "Croccabadughi",
@@ -26,6 +27,45 @@ const cards = await generator.generateWarCards([
         townhall: 15,
     },
 ]);
+
+const cardsClanB = await generator.generateWarCards([
+  {
+      position: 1,
+      name: "Croccabadughi",
+      stars: 3,
+      attacksLeft: 1,
+      destruction: 98,
+      townhall: 16,
+  },
+  {
+      position: 7,
+      name: "Marco",
+      stars: 1,
+      attacksLeft: 2,
+      destruction: 54,
+      townhall: 15,
+  },
+]);
+
+const playersByClan: WarPlayersByClan = {
+  "MyClan": cardsClanA,
+  "EnemyClan": cardsClanB,
+};
+
+const war: WarCardData = {
+  clanName: "MyClan",
+  opponentClanName: "EnemyClan",
+  preparationStartTime: Date.now().toString(),
+  startTime: Date.now().toString(),
+  endTime: Date.now().toString(),
+
+  clanStars: 8,
+  opponentClanStars: 6,
+  destruction: 86,
+  opponentDestruction: 72,
+};
+
+generator.generateWarImage(war, playersByClan).then((filePath) => { log.success(`Generated war image at ${filePath}`); })
 
 // const generator = new WarPlayerCardGenerator({
 //     basePath: Deno.cwd(),

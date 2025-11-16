@@ -1,8 +1,9 @@
 import { Browser } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
-import { WarPlayerCardData } from "./types.ts";
+import { WarPlayerCardData, WarPlayerGeneratedCard } from "./types.ts";
 import { renderWarPlayerCardHTML } from "./template.ts";
-import { loadBase64, loadFontBase64, unpackedDateTimeSec } from "../../../utility/formatting.ts";
+import { loadBase64, loadFontBase64, unpackedDate, } from "../../../utility/formatting.ts";
 import { log } from "../../../utility/logger.ts";
+
 
 export class WarPlayerCardGenerator {
   
@@ -23,12 +24,15 @@ export class WarPlayerCardGenerator {
     townhalls: {},
   };
 
+  private checkCacheEveryGenerations: number = 10;
+  private generationCounter: number = 0;
+
   constructor(options?: { basePath?: string; outputDir?: string }, private browser: Browser | null = null) {
     this.basePath = options?.basePath ?? Deno.cwd();
     this.outputDir = options?.outputDir ?? "/tmp/war_cards";
 
     // crea cartella di output se non esiste
-    Deno.mkdirSync(this.outputDir, { recursive: true });    
+    Deno.mkdirSync(this.outputDir, { recursive: true });
   }
 
   public async preloadAssets() {
@@ -64,7 +68,7 @@ export class WarPlayerCardGenerator {
   /**
    * Genera tutte le card e ritorna la lista dei path PNG sul disco.
    */
-  async generate(players: WarPlayerCardData[]): Promise<string[]> {
+  async generate(players: WarPlayerCardData[]): Promise<WarPlayerGeneratedCard[]> {
     //const browser = await this.initBrowser();
     const page = await this.browser!.newPage();
 
@@ -75,27 +79,75 @@ export class WarPlayerCardGenerator {
       deviceScaleFactor: 2, // => output 2800x920
     });
 
-    const results: string[] = [];
+    const results: WarPlayerGeneratedCard[] = [];
     for (const player of players) {
+      const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(player)}.png`;
+      try {
+        await Deno.stat(file);
+        
+        results.push({
+          player: player.name,
+          position: player.position,
+          filePath: file,          
+        });
+        log.trace(`Cache hit for card ${file}`);  
+        continue;
+      } catch {
+        // Not existing file, go ahead        
+      }
+
       const html = renderWarPlayerCardHTML(
         player, this.assets
       );
 
       await page.setContent(html, {
         waitUntil: ["load", "domcontentloaded"],
-      });      
-
-      const safeName = player.name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-      const file = `${this.outputDir}/card_rank${player.position}_${unpackedDateTimeSec()}_${safeName}.png`;
+      });                  
 
       await page.screenshot({ path: file });
 
-      results.push(file);
+      results.push({
+        player: player.name,
+        position: player.position,        
+        filePath: file,
+      });
     }
 
     await page.close();
 
     log.trace(`Generated ${results.length} war player cards.`);
+
+    this.generationCounter++;
+    if (this.generationCounter >= this.checkCacheEveryGenerations) {
+      this.generationCounter = 0;
+      await this.cleanupOldFiles();
+    }    
     return results;
   } 
+
+  private makeCacheKey(data: WarPlayerCardData): string {
+    const safeName = data.name.replace(/[^a-z0-9]/gi, "").toLowerCase();
+  
+    return [
+      `pos${data.position}`,
+      `name${safeName}`,
+      `stars${data.stars}`,
+      `atk${data.attacksLeft}`,
+      `dst${data.destruction}`,
+      `th${data.townhall}`
+    ].join("_");
+  }
+
+  private async cleanupOldFiles() {
+    const today = unpackedDate();
+    for await (const f of Deno.readDir(this.outputDir)) {
+      if (!f.isFile) continue;
+      if (!f.name.endsWith(".png")) continue;
+  
+      if (!f.name.startsWith(today)) {
+        await Deno.remove(`${this.outputDir}/${f.name}`);
+      }
+    }
+  }
+    
 }

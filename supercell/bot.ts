@@ -51,10 +51,10 @@ export class ClashBot {
   
     if (!msg) return;
   
-    for (const chatId of this.admins) {
-      await this.bot.api.sendMessage(chatId, msg, {
-        parse_mode: "Markdown",
-      });
-    }
+    // for (const chatId of this.admins) {
+    //   await this.bot.api.sendMessage(chatId, msg, {
+    //     parse_mode: "Markdown",
+    //   });
+    // }
   }
 }
