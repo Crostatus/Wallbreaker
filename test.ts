@@ -9,6 +9,7 @@ const env = config();
 const generator = new WarPlayerCardGenerator({
     basePath: Deno.cwd(),
   });
+  generator.preloadAssets();
   
   const cards = await generator.generate([
     {

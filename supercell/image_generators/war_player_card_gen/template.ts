@@ -1,26 +1,12 @@
-import { loadFontBase64 } from "../../../utility/formatting.ts";
 import { WarPlayerCardData } from "./types.ts";
 
 /**
  * Ritorna l'HTML finale della card, completamente compatibile con Puppeteer.
  */
 export function renderWarPlayerCardHTML(
-  data: WarPlayerCardData,
-  basePath: string,
+  data: WarPlayerCardData,  
+  assets: any
 ): string {
-  // Font Supercell inline (fix definitivo)
-  const fontPath = `${basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
-  const clashFontData = loadFontBase64(fontPath);
-
-  const townhallPath =
-    `file://${basePath}/supercell/image_generators/assets/townhalls/${data.townhall}.png`;
-
-  const starFull =
-    `file://${basePath}/supercell/image_generators/assets/icons/star.png`;
-  const starEmpty =
-    `file://${basePath}/supercell/image_generators/assets/icons/empty_star.png`;
-  const sword =
-    `file://${basePath}/supercell/image_generators/assets/icons/sword.png`;
 
   return `
 <!DOCTYPE html>
@@ -32,14 +18,14 @@ export function renderWarPlayerCardHTML(
   /* FONT SUPERSELL INLINE — FUNZIONA SEMPRE */
   @font-face {
     font-family: 'Clash';
-    src: url('${clashFontData}') format('truetype');
+    src: url('${assets.font}') format('truetype');
     font-weight: normal;
     font-style: normal;
   }
 
   @font-face {
     font-family: 'ClashBold';
-    src: url('${clashFontData}') format('truetype');
+    src: url('${assets.font}') format('truetype');
     font-weight: bold;
     font-style: normal;
   }
@@ -173,7 +159,7 @@ export function renderWarPlayerCardHTML(
 
   <!-- LEFT SIDE: TOWNHALL -->
   <div class="left">
-    <img src="${townhallPath}" />
+    <img src="${assets.townhalls[data.townhall] ?? assets.townhalls['1']}">
   </div>
 
   <!-- RIGHT -->
@@ -187,7 +173,7 @@ export function renderWarPlayerCardHTML(
 
       <div class="stars">
         ${[1,2,3].map(i =>
-          `<img src="${i <= data.stars ? starFull : starEmpty}" />`
+          `<img src="${i <= data.stars ? assets.starFull : assets.starEmpty}" />`
         ).join("")}
       </div>
     </div>
@@ -195,7 +181,7 @@ export function renderWarPlayerCardHTML(
     <div>
       <div class="attacks-row">
         ${Array.from({ length: data.attacksLeft }).map(() =>
-          `<img src="${sword}" />`
+          `<img src="${assets.sword}">`
         ).join("")}
       </div>
 

@@ -1,19 +1,67 @@
 import puppeteer, { Browser } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
 import { WarPlayerCardData } from "./types.ts";
 import { renderWarPlayerCardHTML } from "./template.ts";
-import { loadFontBase64 } from "../../../utility/formatting.ts";
+import { loadBase64, loadFontBase64, loadImageBase64 } from "../../../utility/formatting.ts";
+import { log } from "../../../utility/logger.ts";
 
 export class WarPlayerCardGenerator {
   private browser: Browser | null = null;
   private basePath: string;
   private outputDir: string;
 
+  private assets: {
+    font: string;
+    starFull: string;
+    starEmpty: string;
+    sword: string;
+    townhalls: Record<number, string>;
+  } = {
+    font: "",
+    starFull: "",
+    starEmpty: "",
+    sword: "",
+    townhalls: {},
+  };
+
   constructor(options?: { basePath?: string; outputDir?: string }) {
     this.basePath = options?.basePath ?? Deno.cwd();
     this.outputDir = options?.outputDir ?? "/tmp/war_cards";
 
     // crea cartella di output se non esiste
-    Deno.mkdirSync(this.outputDir, { recursive: true });
+    Deno.mkdirSync(this.outputDir, { recursive: true });    
+  }
+
+  public async preloadAssets() {
+    log.trace("Preloading assets...");
+    
+    const fontPath = `${this.basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
+    //const fontBytes = Deno.readFileSync(fontPath);
+    //this.assets.font = `data:font/ttf;base64,${btoa(String.fromCharCode(...fontBytes))}`;
+    
+    this.assets.font = loadFontBase64(fontPath);
+
+    const iconsPath = `${this.basePath}/supercell/image_generators/assets/icons`;
+    this.assets.starFull = loadBase64(`${iconsPath}/star.png`);
+    this.assets.starEmpty = loadBase64(`${iconsPath}/empty_star.png`);
+    this.assets.sword = loadBase64(`${iconsPath}/sword.png`);
+
+
+    const thPath = `${this.basePath}/supercell/image_generators/assets/townhalls`;
+
+    for await (const f of Deno.readDir(thPath)) {
+      if (!f.isFile) continue;
+      if (!f.name.endsWith(".png")) continue;
+
+      const thNumber = Number(f.name.replace(".png", ""));
+
+      this.assets.townhalls[thNumber] = loadBase64(`${thPath}/${f.name}`);
+    }
+    
+    if (!this.assets.townhalls[1]) {
+      throw new Error("Townhall 1 missing. Needed as fallback.");
+    }
+
+    log.trace("✅ Assets ready.");
   }
 
   private async initBrowser() {
@@ -57,10 +105,9 @@ export class WarPlayerCardGenerator {
 
     const results: string[] = [];
     for (const player of players) {
-      const html = await renderWarPlayerCardHTML(player, this.basePath);
-      console.log("=== HTML START ===");
-console.log(html);
-console.log("=== HTML END ===");
+      const html = renderWarPlayerCardHTML(
+        player, this.assets
+      );
 
       await page.setContent(html, {
         waitUntil: ["load", "domcontentloaded"],

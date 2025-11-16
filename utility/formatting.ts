@@ -90,3 +90,28 @@ export function loadFontBase64(path: string): string {
 
   return `data:font/ttf;base64,${base64}`;
 }
+
+export function loadImageBase64(path: string): string {
+  try {
+    const bytes = Deno.readFileSync(path);
+    const base64 = btoa(String.fromCharCode(...bytes));
+    // Assumo PNG
+    return `data:image/png;base64,${base64}`;
+  } catch (_) {
+    return ""; 
+  }
+}
+
+export function loadBase64(path: string): string {
+  const bytes = Deno.readFileSync(path);
+
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+
+  return `data:image/png;base64,${btoa(binary)}`;
+}
+
+
+
