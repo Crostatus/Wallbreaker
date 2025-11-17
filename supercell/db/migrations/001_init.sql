@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS telegram_links (
+  telegram_id BIGINT PRIMARY KEY,
+  clan_tag TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS clans (
   tag TEXT PRIMARY KEY,
   name TEXT NOT NULL,

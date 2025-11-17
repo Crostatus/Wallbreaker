@@ -81,7 +81,7 @@ export function startWarAttackUpdateTask(
                 lastWarFetch.set(war.id, Date.now());
                 
                 await repo.war.insertFullWar(warRes.data);
-                log.success(`🏆 War ${war.id} updated successfully.`);
+                log.success(`🏆 War ${war.id} updated successfully.`);                                
 
                 const playerNameMap = new Map<string, string>();
                 for (const m of warRes.data.clan.members) {
@@ -110,6 +110,18 @@ export function startWarAttackUpdateTask(
                     allAttacks
                 );
 
+                if (newAttacks.length === 0) {
+                    log.info(`😴 No new attacks in war ${war.id}`);
+                    continue;
+                }
+                log.info(`🚨 Detected ${newAttacks.length} new attacks in war ${war.id}`);
+
+                const telegramChatIds = await repo.telegram.getLinkedChatsForClan(clanTag);
+                if(telegramChatIds.length === 0) {
+                    log.info(`Clan ${clanTag} has no linked chats, skipping attack notifications.`);
+                    continue;
+                }
+
                 const bestStarsMap = await repo.war.getBestStarsForWar(war.id);
                 const formattedAttacks = await Promise.all(
                     newAttacks.map(atk => {
@@ -126,15 +138,14 @@ export function startWarAttackUpdateTask(
                     })
                 );
 
-                await bot.notifyNewAttacks(clan.name, war.enemy_clan_name, {
-                    clanStars: warRes.data.clan.stars,
-                    clanPercentage: warRes.data.clan.destructionPercentage,
-                    oppStars: warRes.data.opponent.stars,
-                    oppPercentage: warRes.data.opponent.destructionPercentage,
+                await bot.notifyNewAttacks(telegramChatIds, clan.name, war.enemy_clan_name, {
+                        clanStars: warRes.data.clan.stars,
+                        clanPercentage: warRes.data.clan.destructionPercentage,
+                        oppStars: warRes.data.opponent.stars,
+                        oppPercentage: warRes.data.opponent.destructionPercentage,
                     }, 
                     formattedAttacks
                 );
-
             }
         }
         catch (err) {

@@ -4,6 +4,7 @@ import { load } from "https://deno.land/std@0.224.0/dotenv/mod.ts";
 import { log } from "../../../utility/logger.ts";
 import { ClanRepository } from "./clanRepository.ts";
 import { WarRepository } from "./warRepository.ts";
+import { TelegramRepository } from "./telegramRepository.ts";
 
 
 const env = await load();
@@ -21,11 +22,13 @@ export class Repository {
   
     public clan: ClanRepository;
     public war: WarRepository;
+    public telegram: TelegramRepository;
 
     constructor(client?: InstanceType<typeof Client>) {
       this.client = client ?? new Client(DB_CONFIG);
       this.clan = new ClanRepository(this.client);
       this.war = new WarRepository(this.client);
+      this.telegram = new TelegramRepository(this.client);
     }
   
     async connect() {

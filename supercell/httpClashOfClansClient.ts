@@ -64,9 +64,9 @@ export class HttpClashOfClansClient {
         const result = await task();
 
         if (result.ok) {
-          log.success(`✅ [${id}]`);
+          log.success(`[${id}]`);
         } else {
-          log.error(`❌ [${id}] API error: ${result.error.reason}`);
+          log.error(`[${id}] API error: ${result.error.reason}, message: ${result.error.message}`);
         }
 
         resolve(result);
@@ -142,7 +142,7 @@ export class HttpClashOfClansClient {
     const res = await this.request<T>(path);
 
     if (!res.ok && retries > 0) {
-      log.warn(`🔄 Retry [${path}] (${retries} tentativi rimasti)`);
+      log.warn(`🔄 Retry [${path}] (${retries} attempts left)`);
       await new Promise((r) => setTimeout(r, this.msBeforeReattempt));
       return this.safeRequest(path, retries - 1);
     }
