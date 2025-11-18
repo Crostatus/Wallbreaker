@@ -7,90 +7,28 @@ import { WarPlayerCardGenerator } from "./supercell/image_generators/war_player_
 import { WarCardData, WarPlayersByClan } from "./supercell/image_generators/war_gen/types.ts";
 const env = config();
 
+function generateClanPlayers(count: number, clanName: string) {
+  const players = [];
+
+  for (let i = 1; i <= count; i++) {
+    players.push({
+      position: i,
+      name: `${clanName}-Player${i}`,
+      stars: Math.floor(Math.random() * 4),       // 0-3
+      attacksLeft: Math.floor(Math.random() * 3), // 0-2
+      destruction: Math.floor(Math.random() * 100),
+      townhall: 10 + Math.floor(Math.random() * 7), // TH10–TH16
+    });
+  }
+
+  return players;
+}
+
 const generator: ClashCardGenerator = new ClashCardGenerator();
 await generator.init();
-const cardsClanA = await generator.generateWarCards([
-    {
-        position: 1,
-        name: "Croccabadughi",
-        stars: 3,
-        attacksLeft: 1,
-        destruction: 98,
-        townhall: 16,
-    },
-    {
-        position: 9,
-        name: "Marco",
-        stars: 1,
-        attacksLeft: 2,
-        destruction: 54,
-        townhall: 15,
-    },
-    {
-      position: 10,
-      name: "Maaarco",
-      stars: 3,
-      attacksLeft: 1,
-      destruction: 54,
-      townhall: 2,
-  },
-  {
-    position: 12,
-    name: "Croccabadughi",
-    stars: 2,
-    attacksLeft: 1,
-    destruction: 98,
-    townhall: 16,
-},
-{
-  position: 11,
-  name: "Croccabadughi",
-  stars: 3,
-  attacksLeft: 1,
-  destruction: 98,
-  townhall: 16,
-},
-]);
+const cardsClanA = await generator.generateWarCards(generateClanPlayers(20, "MyClan"));
 
-const cardsClanB = await generator.generateWarCards([
-  {
-      position: 1,
-      name: "Croccabadughi",
-      stars: 3,
-      attacksLeft: 1,
-      destruction: 98,
-      townhall: 16,
-  },
-  {
-      position: 7,
-      name: "Marco",
-      stars: 1,
-      attacksLeft: 2,
-      destruction: 54,
-      townhall: 15,
-  },{
-    position: 10,
-    name: "Maaarco3",
-    stars: 3,
-    attacksLeft: 1,
-    destruction: 54,
-    townhall: 2,
-},{
-  position: 8,
-  name: "Maaarco2",
-  stars: 3,
-  attacksLeft: 1,
-  destruction: 54,
-  townhall: 2,
-},{
-  position: 9,
-  name: "Maaarco1",
-  stars: 3,
-  attacksLeft: 1,
-  destruction: 54,
-  townhall: 2,
-},
-]);
+const cardsClanB = await generator.generateWarCards(generateClanPlayers(20, "EnemyClan"));
 
 const playersByClan: WarPlayersByClan = {
   "MyClan": cardsClanA,
