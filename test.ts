@@ -46,6 +46,9 @@ const war: WarCardData = {
   opponentClanStars: 6,
   destruction: 86,
   opponentDestruction: 72,
+
+  clanAttacks: 15,
+  opponentClanAttacks: 14,
 };
 
 generator.generateWarImage(war, playersByClan).then((filePath) => { log.success(`Generated war image at ${filePath}`); })
