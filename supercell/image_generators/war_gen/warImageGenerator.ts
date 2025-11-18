@@ -42,8 +42,7 @@ export class WarImageGenerator {
         log.success("Assets ready.");
     }
 
-    async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {
-        //const browser = await this.initBrowser();
+    async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {        
         const clanNames = Object.keys(playersByclan);
         const page = await this.browser!.newPage();
     
