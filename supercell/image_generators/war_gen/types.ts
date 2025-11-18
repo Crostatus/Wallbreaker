@@ -10,6 +10,8 @@ export interface WarCardData {
     opponentClanStars: number;      
     destruction: number;
     opponentDestruction: number;
+    clanAttacks: number;
+    opponentClanAttacks: number;
 }
 
 export interface WarPlayersByClan {
