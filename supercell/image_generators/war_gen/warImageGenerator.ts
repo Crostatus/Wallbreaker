@@ -104,6 +104,8 @@ export class WarImageGenerator {
           `odst${data.opponentDestruction}`,
           `s${data.clanStars}`,
           `os${data.opponentClanStars}`,
+          `a${data.clanAttacks}`,
+          `oa${data.opponentClanAttacks}`,
         ].join("_");
       }
     
