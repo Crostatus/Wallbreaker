@@ -57,7 +57,7 @@ export class WarImageGenerator {
         await page.setViewport({
           width: 3000,
           height: totalHeight,
-          deviceScaleFactor: 2, // => output 2800x920
+          deviceScaleFactor: 1, // => output 2800x920
         });    
             
         const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(war)}.png`;
