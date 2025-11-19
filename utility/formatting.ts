@@ -18,63 +18,43 @@ export function formatWarAttackNotification(
     },
     attacks: Array<{
       attacker_name: string;
+      attacker_position: number;
       defender_name: string;
+      defender_position: number;
       stars: number;
       percentage: number;
       duration: number;
-      starsGained: number;
+      starsGained: number;      
     }>,
   ): string {
     if (attacks.length === 0) return "";
   
-    const barClan = percentToBar(summary.clanPercentage);
-    const barOpp = percentToBar(summary.oppPercentage);
+    const clanSummaryMessage = [
+      `*${clanName}*`,
+      `${percentToBar(summary.clanPercentage)}  ${summary.clanStars}⭐`,
+      `*${opponentClanName}*`,
+      `${percentToBar(summary.oppPercentage)}  ${summary.oppStars}⭐`,
+      `-----------------------------------------`,
+      ` `,
+    ].join("\n");
+    
+    const rows = attacks.map(a => {      
+      const gained = a.starsGained > 0 ? ("+" + a.starsGained) : "0";
+      return [
+        `${a.attacker_position}. ${a.attacker_name}`,
+        `⚔`,
+        `${a.defender_position}. ${a.defender_name}`,
+        `${percentToBar(a.percentage, 8)} ${`⭐`.repeat(a.stars)}${`✩`.repeat(3 - a.stars)} (${gained})`,        
+        `-----------------------------------------`,
+      ].join("\n");
+    }).join("\n");
+
   
-    // ---------- WAR SUMMARY ----------
-    const warSummary = `
-  \`\`\`
-  Clan                  Stars       %
-  ------------------------------------------------------
-  ${clanName.padEnd(20)}${String(summary.clanStars).padEnd(12)}${barClan}
-  ${opponentClanName.padEnd(20)}${String(summary.oppStars).padEnd(12)}${barOpp}
-  \`\`\`
-  `.trim();
-  
-    // ---------- MULTI-RIGA ATTACCHI ----------
-    const rows = attacks
-      .map(a => {
-        const bar = percentToBar(a.percentage, 8);
-        const gained = a.starsGained > 0 ? ("+" + a.starsGained) : "0";
-  
-        return (
-          a.attacker_name.padEnd(17) +
-          a.defender_name.padEnd(18) +
-          String(a.stars).padEnd(3) +
-          gained.padEnd(5) +          // <-- colonna + più corta
-          String(a.duration).padEnd(6) +
-          bar
-        );
-      })
-      .join("\n");
-  
-    const attackTable = `
-  \`\`\`
-  Attacker          Defender          ⭐  +    Sec   % Bar
-  -----------------------------------------------------------------------
-  ${rows}
-  \`\`\`
-  `.trim();
-  
-    // ---------- MESSAGGIO COMPLETO ----------
-    return `
-  🔥 *${attacks.length} New Attacks Detected!*
-  
-  🏆 *War Summary*
-  ${warSummary}
-  
-  ⚔️ *Attack Details*
-  ${attackTable}
-    `.trim();
+    return [
+      `💣 ${attacks.length} new attacks detected!`,
+      clanSummaryMessage,
+      rows,
+    ].join("\n");
 }
   
 

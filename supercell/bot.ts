@@ -95,7 +95,9 @@ export class ClashBot {
     },
     attacks: Array<{
       attacker_name: string;
+      attacker_position: number;
       defender_name: string;
+      defender_position: number;
       stars: number;
       percentage: number;
       duration: number;

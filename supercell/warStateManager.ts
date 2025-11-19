@@ -6,6 +6,8 @@ export interface AttackKey {
     stars: number;
     percentage: number;
     duration: number;
+    attacker_position: number;
+    defender_position: number;
 }
 
 interface NotifiedFile {

@@ -83,27 +83,31 @@ export function startWarAttackUpdateTask(
                 await repo.war.insertFullWar(warRes.data);
                 log.success(`🏆 War ${war.id} updated successfully.`);                                
 
-                const playerNameMap = new Map<string, string>();
+                const playerNameMap = new Map<string, {name: string, position: number}>();
                 for (const m of warRes.data.clan.members) {
-                    playerNameMap.set(m.tag, m.name);
+                    playerNameMap.set(m.tag, {name: m.name, position: m.mapPosition});
                 }
                 
-                for (const m of warRes.data.opponent.members) {
-                    playerNameMap.set(m.tag, m.name);
+                for (const m of warRes.data.opponent.members) {                    
+                    playerNameMap.set(m.tag, {name: m.name, position: m.mapPosition});
                 }
 
                 const warSituation = [
                     ...warRes.data.clan.members.map(m => asWarMember(war.clan_tag, m)),
                     ...warRes.data.opponent.members.map(m => asWarMember(war.enemy_clan_tag, m)),
                 ];
-                
-                const allAttacks = warSituation.flatMap(x => x.attacks).map(a => ({
-                    attacker_tag: a.attacker_tag,                    
-                    defender_tag: a.defender_tag,
-                    stars: a.stars,
-                    percentage: a.destruction_percentage,
-                    duration: a.duration,
-                }));
+
+                const allAttacks = warSituation.flatMap(x =>
+                    x.attacks.map(a => ({
+                      attacker_tag: a.attacker_tag,
+                      defender_tag: a.defender_tag,
+                      stars: a.stars,
+                      percentage: a.destruction_percentage,
+                      duration: a.duration,
+                      attacker_position: x.member.position,
+                      defender_position: playerNameMap.get(a.defender_tag)?.position || 0,
+                    }))
+                  );
 
                 const newAttacks = await warState.processWarUpdate(
                     war.id,
@@ -119,24 +123,31 @@ export function startWarAttackUpdateTask(
                 if (!bot) {                    
                     continue;
                 }
-                const telegramChatIds = await repo.telegram.getLinkedChatsForClan(clanTag);
+                const telegramChatIds = await repo.telegram.getLinkedChatsForClan(clanTag);                
                 if(telegramChatIds.length === 0) {
                     log.info(`Clan ${clanTag} has no linked chats, skipping attack notifications.`);
                     continue;
                 }
 
-                const bestStarsMap = await repo.war.getBestStarsForWar(war.id);
+                const bestAttacksMap = await repo.war.getBestAttacksForWar(war.id);
                 const formattedAttacks = await Promise.all(
                     newAttacks.map(atk => {
-                        const previousBest = bestStarsMap.get(atk.defender_tag) ?? 0;
-                  
+                        const previous = bestAttacksMap.get(atk.defender_tag);
+                        
+                        const previousStars =
+                        previous && previous.attacker === atk.attacker_tag
+                            ? 0
+                            : (previous?.stars ?? 0);
+                            
                         return {
-                            attacker_name: playerNameMap.get(atk.attacker_tag) || atk.attacker_tag,
-                            defender_name: playerNameMap.get(atk.defender_tag) || atk.defender_tag,
+                            attacker_name: playerNameMap.get(atk.attacker_tag)?.name || atk.attacker_tag,
+                            defender_name: playerNameMap.get(atk.defender_tag)?.name || atk.defender_tag,
                             stars: atk.stars,
                             percentage: atk.percentage,
                             duration: atk.duration,
-                            starsGained: Math.max(0, atk.stars - previousBest),
+                            starsGained: Math.max(0, atk.stars - previousStars),
+                            attacker_position: atk.attacker_position,
+                            defender_position: atk.defender_position,                                                       
                         };
                     })
                 );
