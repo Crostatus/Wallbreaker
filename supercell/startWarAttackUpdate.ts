@@ -16,7 +16,7 @@ export function startWarAttackUpdateTask(
     repo: Repository,
     api: HttpClashOfClansClient,
     warState: WarStateManager,
-    bot: ClashBot,
+    bot: ClashBot | null,
     config: WarAttackTaskConfig,
 ) {
     const { intervalSeconds, ifWarCheckEverySeconds } = config;
@@ -67,7 +67,7 @@ export function startWarAttackUpdateTask(
 
                 if (elapsed < ifWarCheckEveryMs) {
                     const wait = ((ifWarCheckEveryMs - elapsed) / 1000).toFixed(1);
-                    log.debug(`⏸️ War ${war.id} fetch skipped. Need ${wait}s more`);
+                    log.debug(`⏸️   War ${war.id} fetch skipped. Need ${wait}s more`);
                     continue;
                 }
             
@@ -116,6 +116,9 @@ export function startWarAttackUpdateTask(
                 }
                 log.info(`🚨 Detected ${newAttacks.length} new attacks in war ${war.id}`);
 
+                if (!bot) {                    
+                    continue;
+                }
                 const telegramChatIds = await repo.telegram.getLinkedChatsForClan(clanTag);
                 if(telegramChatIds.length === 0) {
                     log.info(`Clan ${clanTag} has no linked chats, skipping attack notifications.`);

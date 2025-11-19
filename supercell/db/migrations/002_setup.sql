@@ -1,1 +1,0 @@
---INSERT INTO clans (tag, name) VALUES ('#9CJYGLJC', 'Cittadella') ON CONFLICT (tag) DO NOTHING;

@@ -1,3 +1,4 @@
+import { ClashCardGenerator } from './supercell/image_generators/clashCardGenerator.ts';
 import { HttpClashOfClansClient } from './supercell/httpClashOfClansClient.ts';
 import { config } from "https://deno.land/x/dotenv/mod.ts";
 import { log } from "./utility/logger.ts";
@@ -20,8 +21,14 @@ setupShutdownHandlers(repo);
 await repo.connect();
 const api = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
 
-const bot = new ClashBot(env.TELEGRAM_KEY, env.TELEGRAM_ADMIN_CHAT_ID?.split(",") ?? []);
-bot.start();
+let bot : ClashBot | null = null;
+if(env.TELEGRAM_KEY) {
+    bot = new ClashBot(env.TELEGRAM_KEY, api, repo, new ClashCardGenerator());
+    bot.start();    
+}
+else {
+    log.warn("No TELEGRAM_KEY detected, telegram bot disable");
+}
 
 const warState = new WarStateManager();
 

@@ -46,7 +46,7 @@ export class HttpClashOfClansClient {
 
     return new Promise((resolve) => {
       this.queue.push(async () => {
-        log.debug(`⏳ [${id}] enqueued`);
+        log.debug(`⏳ [${id}] API call enqueued`);
 
         // Rispettare il rate limit minimo
         const now = Date.now();
@@ -104,7 +104,9 @@ export class HttpClashOfClansClient {
   private async request<T>(path: string): Promise<ApiResponse<T>> {
     return HttpClashOfClansClient.enqueue<T>(async () => {
       try {
-        const res = await fetch(`${this.baseUrl}${path}`, {
+        const fullPath = `${this.baseUrl}${path}`;
+        log.debug(`🌐 ${fullPath}`);
+        const res = await fetch(fullPath, {
           headers: { Authorization: `Bearer ${this.token}` },
           signal: AbortSignal.timeout(this.msBeforeAbort),
         });
@@ -122,7 +124,7 @@ export class HttpClashOfClansClient {
 
         return { ok: false, error };
 
-      } catch (err) {
+      } catch (err) {        
         return {
           ok: false,
           error: {

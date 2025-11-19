@@ -13,7 +13,7 @@ export class TelegramRepository {
     public async linkToClan(telegramId: number, clanTag: string) {
         try {
             const sql = `
-                INSERT INTO telegram_clan_links (telegram_id, clan_tag)
+                INSERT INTO telegram_links (telegram_id, clan_tag)
                 VALUES ($1, $2)
                 ON CONFLICT (telegram_id) DO UPDATE SET
                     clan_tag = EXCLUDED.clan_tag;
@@ -29,7 +29,7 @@ export class TelegramRepository {
     public async unLinkClan(telegramId: number) {
         try {
             const sql = `
-                DELETE FROM telegram_clan_links
+                DELETE FROM telegram_links
                 WHERE telegram_id = $1;
             `;
             const values = [telegramId];
@@ -44,7 +44,7 @@ export class TelegramRepository {
         try {
             const sql = `
                 SELECT telegram_id
-                FROM telegram_clan_links
+                FROM telegram_links
                 WHERE clan_tag = $1;
             `;
             const values = [clanTag];
@@ -60,12 +60,12 @@ export class TelegramRepository {
         try {
             const sql = `
                 SELECT TOP 1 *
-                FROM telegram_clan_links
-                INNER JOIN clans ON telegram_clan_links.clan_tag = clans.tag
+                FROM telegram_links
+                INNER JOIN clans ON telegram_links.clan_tag = clans.tag
                 INNER JOIN wars ON clans.tag = wars.clan_tag
                 WHERE wars.start_time <= NOW()
                   AND NOW() <= wars.end_time + INTERVAL '10 minutes'
-                  AND telegram_clan_links.telegram_id = $1; 
+                  AND telegram_links.telegram_id = $1; 
                 ORDER BY wars.start_time DESC                
             `;
             const values = [telegramId];

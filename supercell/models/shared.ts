@@ -261,7 +261,7 @@ export interface ClanWarMember {
   tag: string;
   name: string;
   mapPosition: number;
-  townHallLevel: number;
+  townhallLevel: number;
   opponentAttacks: number;
   bestOpponentAttack: ClanWarAttack;  
   attacks: ClanWarAttack[];

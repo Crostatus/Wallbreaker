@@ -1,5 +1,5 @@
 import pkg from "npm:pg@8.11.3";
-import { WarAttackDBO, WarDBO, WarMemberDBO } from "./db_models/warDBO.ts";
+import { WarAttackDBO, WarCardHeaderDBO, WarCardMemberDBO, WarDBO, WarMemberDBO } from "./db_models/warDBO.ts";
 import { ClanWar, ClanWarMember } from "../../models/shared.ts";
 import { log } from "../../../utility/logger.ts";
 const { Client } = pkg;
@@ -29,19 +29,19 @@ export function asWarMember(tag_clan: string, toParse: ClanWarMember): {member: 
         tag_clan: tag_clan,
         tag: toParse.tag,
         name: toParse.name,
-        town_hall_level: toParse.townHallLevel,
+        town_hall_level: toParse.townhallLevel,
         position: toParse.mapPosition,
     } as WarMemberDBO;
 
-    const attacksDBO = toParse.attacks.map(attack => {
+    const attacksDBO = toParse.attacks?.map(attack => {
         return {
             attacker_tag: attack.attackerTag,
             defender_tag: attack.defenderTag,
             stars: attack.stars,
             destruction_percentage: attack.destructionPercentage,
-            duration: attack.duration,
+            duration: attack.duration,            
         } as WarAttackDBO;
-    });
+    }) ?? [];
 
     return { member: memberDBO, attacks: attacksDBO };
 }
@@ -60,8 +60,10 @@ export class WarRepository {
 
         try {
             const warDBO = asWarDBO(war);
+            log.trace(`Inserting war: ${warDBO.clan_tag} vs ${warDBO.enemy_clan_tag}`);
             const warId = await this.insertWar(warDBO);
-  
+            log.trace(`War header inserted with ID: ${warId}`);
+
             const warSituation = [
                 ...war.clan.members.map(m => asWarMember(war.clan.tag, m)),
                 ...war.opponent.members.map(m => asWarMember(war.opponent.tag, m)),
@@ -75,8 +77,10 @@ export class WarRepository {
             const attacks: WarAttackDBO[] = warSituation.flatMap(x =>
                 x.attacks.map(a => ({ ...a, war_id: warId }))
             );
-
+            
+            log.trace(`Inserting ${members.length} war members for war ID ${warId}`);
             await this.insertWarMembers(warId, members);
+            log.trace(`Inserting ${attacks.length} war attacks for war ID ${warId}`);
             await this.insertWarAttacks(warId, attacks);
 
             await this.client.query("COMMIT");
@@ -93,12 +97,12 @@ export class WarRepository {
           INSERT INTO wars (
             start_time, preparation_start_time, attacks_per_member, end_time,
             clan_tag, clan_percentage, clan_stars, clan_badge_url,
-            enemy_clan_tag, enemy_clan_percentage, enemy_clan_stars, enemy_clan_badge_url
+            enemy_clan_tag, enemy_clan_name, enemy_clan_percentage, enemy_clan_stars, enemy_clan_badge_url
           )
           VALUES (
             $1,$2,$3,$4,
             $5,$6,$7,$8,
-            $9,$10,$11,$12
+            $9,$10,$11,$12,$13
           )
           ON CONFLICT (clan_tag, start_time) DO UPDATE SET
             preparation_start_time = EXCLUDED.preparation_start_time,
@@ -108,6 +112,7 @@ export class WarRepository {
             clan_stars = EXCLUDED.clan_stars,
             clan_badge_url = EXCLUDED.clan_badge_url,
             enemy_clan_tag = EXCLUDED.enemy_clan_tag,
+            enemy_clan_name = EXCLUDED.enemy_clan_name,
             enemy_clan_percentage = EXCLUDED.enemy_clan_percentage,
             enemy_clan_stars = EXCLUDED.enemy_clan_stars,
             enemy_clan_badge_url = EXCLUDED.enemy_clan_badge_url
@@ -124,6 +129,7 @@ export class WarRepository {
           war.clan_stars,
           war.clan_badge_url,
           war.enemy_clan_tag,
+          war.enemy_clan_name,
           war.enemy_clan_percentage,
           war.enemy_clan_stars,
           war.enemy_clan_badge_url,
@@ -135,7 +141,7 @@ export class WarRepository {
 
     private async insertWarMembers(warId: number, members: WarMemberDBO[]) {
         if (members.length === 0) return;
-      
+              
         const values: any[] = [];
         const placeholders = members
           .map((m, i) => {
@@ -247,6 +253,73 @@ export class WarRepository {
   
     const res = await this.client.query(sql);
     return res.rows.map((r: { tag: string; }) => r.tag);
+  }
+
+  async getWarHeaderForChat(chatId: number): Promise<WarCardHeaderDBO | null> {
+    const sql = `
+      SELECT
+        w.id,
+        w.clan_tag,
+        c.name AS clan_name,
+        w.clan_badge_url,
+        w.enemy_clan_tag,
+        w.enemy_clan_name,
+        w.enemy_clan_badge_url,
+        w.start_time,
+        w.preparation_start_time,
+        w.end_time,
+        w.attacks_per_member,
+        w.clan_percentage,
+        w.clan_stars,
+        w.enemy_clan_percentage,
+        w.enemy_clan_stars
+      FROM wars w
+      JOIN clans c ON c.tag = w.clan_tag
+      JOIN telegram_links tl ON tl.clan_tag = w.clan_tag
+      WHERE tl.telegram_id = $1
+        AND w.end_time >= NOW() - INTERVAL '30 minutes'
+      ORDER BY w.end_time DESC
+      LIMIT 1;
+    `;
+
+    const res = await this.client.query(sql, [chatId]);
+    if (res.rowCount === 0) return null;
+    return res.rows[0] as WarCardHeaderDBO;
+  }
+
+  async getWarMembersForWar(warId: number): Promise<WarCardMemberDBO[]> {
+    const sql = `
+      SELECT
+        wm.tag,
+        wm.name,
+        wm.position,
+        wm.town_hall_level,
+        COALESCE(br.best_stars, 0) AS best_stars_received,
+        COALESCE(br.best_destruction, 0) AS best_destruction_received,
+        (w.attacks_per_member - COALESCE(af.attacks_done, 0)) AS attacks_left
+      FROM war_members wm
+      JOIN wars w ON w.id = wm.war_id
+      LEFT JOIN (
+        SELECT defender_tag, war_id,
+               MAX(stars) AS best_stars,
+               MAX(destruction_percentage) AS best_destruction
+        FROM war_attacks
+        WHERE war_id = $1
+        GROUP BY war_id, defender_tag
+      ) br ON br.defender_tag = wm.tag AND br.war_id = wm.war_id
+      LEFT JOIN (
+        SELECT attacker_tag, war_id,
+               COUNT(*) AS attacks_done
+        FROM war_attacks
+        WHERE war_id = $1
+        GROUP BY war_id, attacker_tag
+      ) af ON af.attacker_tag = wm.tag AND af.war_id = wm.war_id
+      WHERE wm.war_id = $1
+      ORDER BY wm.position ASC;
+    `;
+
+    const res = await this.client.query(sql, [warId]);
+    return res.rows as WarCardMemberDBO[];
   }
   
     
