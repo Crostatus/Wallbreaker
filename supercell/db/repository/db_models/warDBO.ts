@@ -65,4 +65,23 @@ export interface WarCardMemberDBO {
     best_stars_received: number;
     best_destruction_received: number;
     attacks_left: number;
+    clan_tag?: string;
+}
+
+export interface WarMemberForPlanningRowDBO {
+    attacker_tag: string;
+    attacker_name: string;
+    attacker_th: number;
+    attacker_position: number;
+  
+    defender_position: number | null;
+    defender_th: number | null;
+  
+    stars: number | null;
+}
+
+
+export interface WarAttackHistoryDBO {    
+    attacker_name: string;
+    defender_position: number;    
 }

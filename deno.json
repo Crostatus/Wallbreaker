@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "deno.ns"]
+    "lib": ["dom", "deno.ns"],
+    "module": "esnext"
   },
+  "nodeModulesDir": "auto",
   "tasks": {
     "dev": "deno run --watch --allow-read --allow-write --allow-import --allow-net --allow-env --allow-run main.ts",
     "test": "deno run --watch --allow-read --allow-write --allow-import --allow-net --allow-env --allow-run test.ts",

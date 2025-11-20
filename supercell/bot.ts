@@ -1,14 +1,16 @@
 import { ClashCardGenerator } from './image_generators/clashCardGenerator.ts';
 import { Bot, CommandContext, Context, InputFile } from "https://deno.land/x/grammy/mod.ts";
 import { log } from "../utility/logger.ts";
-import { formatWarAttackNotification } from "../utility/formatting.ts";
+import { formatWarAttackNotification, formatWarPlanMessage, unpackedDate } from "../utility/formatting.ts";
 import { HttpClashOfClansClient } from "./httpClashOfClansClient.ts";
 import { Repository } from "./db/repository/repository.ts";
 import { WarCardMemberDBO } from "./db/repository/db_models/warDBO.ts";
 import { WarPlayersByClan } from "./image_generators/war_gen/types.ts";
+import { WarPlanner, WarPlanRow } from "./warPlanner.ts";
 
 export class ClashBot {
   private bot: Bot;  
+  private warPlanner = new WarPlanner();
 
   constructor(token: string, private coc: HttpClashOfClansClient, private repo: Repository, private generator: ClashCardGenerator) {
     this.bot = new Bot(token);
@@ -43,7 +45,12 @@ export class ClashBot {
     });
 
     this.bot.command("suggestwar", async (ctx) => {      
-      await this.safeReply(ctx, `Work in progress command… 🚧`);
+      const loading = await this.safeReply(ctx, "⏳ Searching for the best plan...");      
+      const plan = await this.generateWarPlan(ctx);
+      
+      await this.safeReply(ctx, formatWarPlanMessage(plan));        
+      
+      await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
     });
 
     this.bot.command("untrack", async (ctx) => {
@@ -76,6 +83,47 @@ export class ClashBot {
     this.bot.catch((err) => {
       log.error(`Telegram bot error: ${err}`);
     });
+  }
+
+  private async generateWarPlan(ctx: CommandContext<Context>): Promise<WarPlanRow[]>{
+    const chatId = ctx.chat.id;
+  
+    const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
+    if (!warHeader) {
+      await this.safeReply(ctx, "No active war found ⚔️");
+      return [];
+    }
+
+    const members: WarCardMemberDBO[] = await this.repo.war.getWarMembersForWar(warHeader.id);    
+    const membersForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.clan_tag)).map(m => { return {
+      name: m.name,
+      townHall: m.town_hall_level,
+      position: m.position,
+      attacksLeft: m.attacks_left, 
+    }});
+
+    const opponentsForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.enemy_clan_tag)).map(m => { return {
+      name: m.name,
+      townHall: m.town_hall_level,
+      position: m.position,
+      starsDone: m.best_stars_received,
+    }});
+  
+    const attackHistory = await this.repo.war.getClanAttacksPosition(warHeader.id, warHeader.clan_tag);
+    if(attackHistory.length === 0) {      
+      return [];
+    }
+    
+    const historyForPlanning = attackHistory.map(a => { return {
+      attackerName: a.attacker_name,
+      defenderPosition: a.defender_position,      
+    }});
+
+    return this.warPlanner.planWar({
+      members: membersForPlanning,
+      enemies: opponentsForPlanning,      
+      attacksHistory: historyForPlanning,      
+    });    
   }
 
   start() {

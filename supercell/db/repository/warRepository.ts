@@ -1,5 +1,5 @@
 import pkg from "npm:pg@8.11.3";
-import { WarAttackDBO, WarCardHeaderDBO, WarCardMemberDBO, WarDBO, WarMemberDBO } from "./db_models/warDBO.ts";
+import { WarAttackDBO, WarAttackHistoryDBO, WarCardHeaderDBO, WarCardMemberDBO, WarDBO, WarMemberDBO, WarMemberForPlanningRowDBO } from "./db_models/warDBO.ts";
 import { ClanWar, ClanWarMember } from "../../models/shared.ts";
 import { log } from "../../../utility/logger.ts";
 const { Client } = pkg;
@@ -331,6 +331,7 @@ export class WarRepository {
   async getWarMembersForWar(warId: number): Promise<WarCardMemberDBO[]> {
     const sql = `
       SELECT
+        wa.tag_clan
         wm.tag,
         wm.name,
         wm.position,
@@ -363,5 +364,56 @@ export class WarRepository {
     return res.rows as WarCardMemberDBO[];
   }
   
+  async getClanMembersWithAttacks(warId: number): Promise<WarMemberForPlanningRowDBO[]> {
+    const sql = `
+      SELECT
+        wm.tag AS attacker_tag,
+        wm.name AS attacker_name,
+        wm.town_hall_level AS attacker_th,
+        wm.position AS attacker_position,
+  
+        def.position AS defender_position,
+        def.town_hall_level AS defender_th,
+  
+        COALESCE(a.stars, 0) AS stars
+      FROM war_members wm
+      JOIN wars w ON w.id = wm.war_id
+  
+      LEFT JOIN war_attacks a 
+        ON a.war_id = wm.war_id
+        AND a.attacker_tag = wm.tag
+  
+      LEFT JOIN war_members def
+        ON def.war_id = wm.war_id
+        AND def.tag = a.defender_tag
+  
+      WHERE wm.war_id = $1
+        AND wm.tag_clan = w.clan_tag
+  
+      ORDER BY wm.position ASC, def.position ASC NULLS LAST;
+    `;
+  
+    const res = await this.client.query(sql, [warId]);
+    return res.rows;
+  }
     
+  async getClanAttacksPosition(warId: number, clan_tag: string): Promise<WarAttackHistoryDBO[]> {
+    const sql = `
+      SELECT
+        wm.name AS attacker_name,
+        def.position AS defender_position          
+      FROM war_members wm
+      INNER JOIN war_attacks a 
+        ON a.war_id = wm.war_id
+        AND a.attacker_tag = wm.tag  
+      LEFT JOIN war_members def
+        ON def.war_id = wm.war_id
+        AND def.tag = a.defender_tag
+      WHERE wm.war_id = $1
+        AND wm.tag_clan = $2  
+    `;
+  
+    const res = await this.client.query(sql, [warId, clan_tag]);
+    return res.rows;
+  }
 }

@@ -1,3 +1,5 @@
+import { WarPlanRow } from "../supercell/warPlanner.ts";
+
 export function percentToBar(percentage: number, length = 10): string {
     const filled = Math.round((percentage / 100) * length);
     const empty = length - filled;
@@ -6,7 +8,6 @@ export function percentToBar(percentage: number, length = 10): string {
 }
 
 
-  
 export function formatWarAttackNotification(
     clanName: string,
     opponentClanName: string,
@@ -125,4 +126,11 @@ export function formatWarTimestamp(ts: string): string {
   const pad = (v: number) => String(v).padStart(2, "0");
 
   return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+
+export function formatWarPlanMessage(plan: WarPlanRow[]): string {
+  return plan.map(row => {
+    return `${ `${row.position}.${row.playerName}`.padEnd(10)} ⚔️ ${row.attack1Position} ➡ ${row.attack2Position}`;
+  }).join("\n");
 }

@@ -5,6 +5,7 @@ import { HttpClashOfClansClient } from "./supercell/httpClashOfClansClient.ts";
 import { log } from "./utility/logger.ts";
 import { WarPlayerCardGenerator } from "./supercell/image_generators/war_player_card_gen/warPlayerCardGenerator.ts";
 import { WarCardData, WarPlayersByClan } from "./supercell/image_generators/war_gen/types.ts";
+import { Enemy, Member, WarPlanner } from "./supercell/warPlanner.ts";
 const env = config();
 
 function generateClanPlayers(count: number, clanName: string) {
@@ -24,34 +25,74 @@ function generateClanPlayers(count: number, clanName: string) {
   return players;
 }
 
-const generator: ClashCardGenerator = new ClashCardGenerator();
-await generator.init();
-const cardsClanA = await generator.generateWarCards(generateClanPlayers(20, "MyClan"));
+const members: Member[] = [
+  { name: "A1", townHall: 16, position: 1, attacksLeft: 1 },
+  { name: "A2", townHall: 15, position: 2, attacksLeft: 1 },
+  { name: "A3", townHall: 14, position: 3, attacksLeft: 1 },
+  { name: "A4", townHall: 13, position: 4, attacksLeft: 2 },
+  { name: "A5", townHall: 12, position: 5, attacksLeft: 2 },
+];
 
-const cardsClanB = await generator.generateWarCards(generateClanPlayers(20, "EnemyClan"));
+const enemies: Enemy[] = [
+  { name: "B1", townHall: 16, position: 1, starsDone: 1 },
+  { name: "B2", townHall: 15, position: 2, starsDone: 0 },
+  { name: "B3", townHall: 14, position: 3, starsDone: 0 },
+  { name: "B4", townHall: 13, position: 4, starsDone: 0 },
+  { name: "B5", townHall: 12, position: 5, starsDone: 0 },
+];
 
-const playersByClan: WarPlayersByClan = {
-  "MyClan": cardsClanA,
-  "EnemyClan": cardsClanB,
-};
+const PreviousAttacks = [
+  { attackerName: "A1", defenderPosition: 1 },
+  { attackerName: "A2", defenderPosition: 2 },
+  { attackerName: "A3", defenderPosition: 3 },
+];
 
-const war: WarCardData = {
-  clanName: "MyClan",
-  opponentClanName: "EnemyClan",
-  preparationStartTime: Date.now().toString(),
-  startTime: Date.now().toString(),
-  endTime: Date.now().toString(),
+const planner = new WarPlanner();
 
-  clanStars: 8,
-  opponentClanStars: 6,
-  destruction: 86,
-  opponentDestruction: 72,
+  log.info("🧠 Calcolo piano MILP...");
+  const plan = await planner.planWar({
+    date: "20251212",
+    warId: 1,
+    totalAttacksMade: randomInt(0, 1000),
+    members,
+    enemies,
+    attacksHistory: PreviousAttacks,
+  }, );
 
-  clanAttacks: 15,
-  opponentClanAttacks: 14,
-};
+  console.log("📋 RISULTATO:");
+  console.table(plan);
 
-generator.generateWarImage(war, playersByClan).then((filePath) => { log.success(`Generated war image at ${filePath}`); })
+function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+// const generator: ClashCardGenerator = new ClashCardGenerator();
+// await generator.init();
+// const cardsClanA = await generator.generateWarCards(generateClanPlayers(20, "MyClan"));
+
+// const cardsClanB = await generator.generateWarCards(generateClanPlayers(20, "EnemyClan"));
+
+// const playersByClan: WarPlayersByClan = {
+//   "MyClan": cardsClanA,
+//   "EnemyClan": cardsClanB,
+// };
+
+// const war: WarCardData = {
+//   clanName: "MyClan",
+//   opponentClanName: "EnemyClan",
+//   preparationStartTime: Date.now().toString(),
+//   startTime: Date.now().toString(),
+//   endTime: Date.now().toString(),
+
+//   clanStars: 8,
+//   opponentClanStars: 6,
+//   destruction: 86,
+//   opponentDestruction: 72,
+
+//   clanAttacks: 15,
+//   opponentClanAttacks: 14,
+// };
+
+// generator.generateWarImage(war, playersByClan).then((filePath) => { log.success(`Generated war image at ${filePath}`); })
 
 // const generator = new WarPlayerCardGenerator({
 //     basePath: Deno.cwd(),
