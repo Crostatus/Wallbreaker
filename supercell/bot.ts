@@ -9,34 +9,34 @@ import { WarPlayersByClan } from "./image_generators/war_gen/types.ts";
 import { WarPlanner, WarPlanRow } from "./warPlanner.ts";
 
 export class ClashBot {
-  private bot: Bot;  
+  private bot: Bot;
   //private warPlanner = new WarPlanner();
 
   constructor(token: string, private coc: HttpClashOfClansClient, private repo: Repository, private generator: ClashCardGenerator) {
     this.bot = new Bot(token);
 
-    this.bot.command("track", async (ctx) => {            
+    this.bot.command("track", async (ctx) => {
       const clanTag = this.getCommandArg(ctx?.message?.text);
-      if(!clanTag || !clanTag.startsWith('#')) {
+      if (!clanTag || !clanTag.startsWith('#')) {
         await this.safeReply(ctx, "Please provide a valid clan tag to track. Usage: /track #clan_tag");
         return;
       }
-      const loading = await this.safeReply(ctx, "⏳ Fetching clan data...");      
+      const loading = await this.safeReply(ctx, "⏳ Fetching clan data...");
 
       const clan = await this.repo.clan.findClanByTag(clanTag);
-      let clanName: string = clan?.name ?? "";      
+      let clanName: string = clan?.name ?? "";
 
       if (!clan) {
         const newClanToTrack = await this.coc.getClan(clanTag);
-        if(!newClanToTrack.ok) {
+        if (!newClanToTrack.ok) {
           log.warn(`Failed to find clan with tag ${clanTag}: ${newClanToTrack.error.reason}`);
           await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
-          await this.safeReply(ctx, `Unable to find clan with tag ${clanTag} 📡`);          
+          await this.safeReply(ctx, `Unable to find clan with tag ${clanTag} 📡`);
           return;
         }
         await this.repo.clan.insertClan(newClanToTrack.data);
         await this.repo.clan.insertClanMembers(newClanToTrack.data.tag, newClanToTrack.data.memberList);
-        clanName = newClanToTrack.data.name;                       
+        clanName = newClanToTrack.data.name;
       }
 
       await this.repo.telegram.linkToClan(ctx.chat!.id, clanTag);
@@ -44,32 +44,32 @@ export class ClashBot {
       await this.safeReply(ctx, `Now tracking ${clanName}! 📡`);
     });
 
-    this.bot.command("suggestwar", async (ctx) => {      
+    this.bot.command("suggestwar", async (ctx) => {
       await this.safeReply(ctx, `Work in progress command... ⏳`);
     });
 
     this.bot.command("untrack", async (ctx) => {
-      await this.repo.telegram.unLinkClan(ctx.chat!.id);      
+      await this.repo.telegram.unLinkClan(ctx.chat!.id);
       await this.safeReply(ctx, `Stopped clan tracking for this chat 📟`);
     });
 
-    this.bot.command("help", async (ctx) => {      
+    this.bot.command("help", async (ctx) => {
       await this.safeReply(ctx, `There is no help. There is no hope, either. Just you against the void, can you handle it?`);
     });
 
     this.bot.command("war", async (ctx) => {
-      const loading = await this.safeReply(ctx, "⏳ Generating war report...");      
+      const loading = await this.safeReply(ctx, "⏳ Generating war report...");
       const file = await this.generateWarCard(ctx, false);
-      if(file) {
+      if (file) {
         await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(file)));
       }
       await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
     });
 
     this.bot.command("warleft", async (ctx) => {
-      const loading = await this.safeReply(ctx, "⏳ Generating remaining war report...");      
+      const loading = await this.safeReply(ctx, "⏳ Generating remaining war report...");
       const file = await this.generateWarCard(ctx, true);
-      if(file) {
+      if (file) {
         await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(file)));
       }
       await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
@@ -82,7 +82,7 @@ export class ClashBot {
 
   // private async generateWarPlan(ctx: CommandContext<Context>): Promise<WarPlanRow[]>{
   //   const chatId = ctx.chat.id;
-  
+
   //   const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
   //   if (!warHeader) {
   //     await this.safeReply(ctx, "No active war found ⚔️");
@@ -103,12 +103,12 @@ export class ClashBot {
   //     position: m.position,
   //     starsDone: m.best_stars_received,
   //   }});
-  
+
   //   const attackHistory = await this.repo.war.getClanAttacksPosition(warHeader.id, warHeader.clan_tag);
   //   if(attackHistory.length === 0) {      
   //     return [];
   //   }
-    
+
   //   const historyForPlanning = attackHistory.map(a => { return {
   //     attackerName: a.attacker_name,
   //     defenderPosition: a.defender_position,      
@@ -153,9 +153,9 @@ export class ClashBot {
       summary,
       attacks,
     );
-  
+
     if (!msg) return;
-  
+
     for (const chatId of telegramChatIds) {
       await this.bot.api.sendMessage(chatId, msg, {
         parse_mode: "Markdown",
@@ -184,29 +184,27 @@ export class ClashBot {
 
   async generateWarCard(ctx: CommandContext<Context>, onlyWhatsLeft: boolean) {
     const chatId = ctx.chat.id;
-  
+
     log.debug(`Generating war card for chat ${chatId}, onlyWhatsLeft=${onlyWhatsLeft}`);
     const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
     if (!warHeader) {
       await this.safeReply(ctx, "No active war found ⚔️");
       return null;
-    }    
-      
+    }
+
     const members = await this.repo.war.getWarMembersForWar(warHeader.id);
-    
+
     const clanPlayersRaw = members.filter((m: any) => m.clan_tag.startsWith(warHeader.clan_tag));
     const enemyPlayersRaw = members.filter((m: any) => m.clan_tag.startsWith(warHeader.enemy_clan_tag));
-  
-    //console.log(clanPlayersRaw);
-    //console.log(enemyPlayersRaw);
+
     const filteredClan = onlyWhatsLeft
       ? clanPlayersRaw.filter((m: any) => m.attacks_left > 0)
       : clanPlayersRaw;
-  
+
     const filteredEnemy = onlyWhatsLeft
       ? enemyPlayersRaw.filter((m: any) => m.best_stars_received < 3)
       : enemyPlayersRaw;
-    
+
     const mapPlayer = (m: any) => ({
       position: m.position,
       name: m.name,
@@ -215,15 +213,15 @@ export class ClashBot {
       destruction: m.best_destruction_received,
       townhall: m.town_hall_level,
     });
-  
+
     const playersByClan: WarPlayersByClan = {};
-    
+
     const sortedClan = filteredClan.sort((a: WarCardMemberDBO, b: WarCardMemberDBO) => a.position - b.position).map(mapPlayer);
     const sortedEnemy = filteredEnemy.sort((a: WarCardMemberDBO, b: WarCardMemberDBO) => a.position - b.position).map(mapPlayer);
 
     playersByClan[warHeader.clan_name] = await this.generator.generateWarCards(sortedClan);
     playersByClan[warHeader.enemy_clan_name] = await this.generator.generateWarCards(sortedEnemy);
-  
+
     const warCardData = {
       clanName: warHeader.clan_name,
       opponentClanName: warHeader.enemy_clan_name,
@@ -237,21 +235,21 @@ export class ClashBot {
       clanAttacks: 0,
       opponentClanAttacks: 0,
     };
-  
+
     const filePath = await this.generator.generateWarImage(warCardData, playersByClan);
     return filePath;
   }
-  
+
   private getCommandArg(fullText: string | null | undefined): string {
-    if(!fullText) {
+    if (!fullText) {
       return "";
     }
 
     return this.getCommandArgs(fullText)[0] ?? "";
   }
 
-  private getCommandArgs(fullText: string | null | undefined): string[] {    
-    if(!fullText) {
+  private getCommandArgs(fullText: string | null | undefined): string[] {
+    if (!fullText) {
       return [];
     }
 

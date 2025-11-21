@@ -5,118 +5,140 @@ import { WarCardData, WarPlayersByClan } from "./types.ts";
 import { renderWarCardHTML } from "./template.ts";
 
 export class WarImageGenerator {
-    private basePath: string;
-    private outputDir: string;
+  private basePath: string;
+  private outputDir: string;
 
-    private assets: {
-        font: string;
-        starFull: string;        
-        sword: string;        
-      } = {
-        font: "",
-        starFull: "",        
-        sword: "",        
-      };
-    
-    private checkCacheEveryGenerations: number = 5;
-    private generationCounter: number = 0;
+  private assets: {
+    font: string;
+    starFull: string;
+    sword: string;
+  } = {
+      font: "",
+      starFull: "",
+      sword: "",
+    };
 
-    constructor(options?: { basePath?: string; outputDir?: string }, private browser: Browser | null = null) {
-        this.basePath = options?.basePath ?? Deno.cwd();
-        this.outputDir = options?.outputDir ?? "/tmp/war_images";
+  private checkCacheEveryGenerations: number = 5;
+  private generationCounter: number = 0;
 
-        // crea cartella di output se non esiste
-        Deno.mkdirSync(this.outputDir, { recursive: true });
+  constructor(options?: { basePath?: string; outputDir?: string }, private browser: Browser | null = null) {
+    this.basePath = options?.basePath ?? Deno.cwd();
+    this.outputDir = options?.outputDir ?? "/tmp/war_images";
+
+    // crea cartella di output se non esiste
+    Deno.mkdirSync(this.outputDir, { recursive: true });
+  }
+
+  public preloadAssets() {
+    log.trace("Preloading assets...");
+
+    const fontPath = `${this.basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
+    this.assets.font = loadFontBase64(fontPath);
+
+    const iconsPath = `${this.basePath}/supercell/image_generators/assets/icons`;
+    this.assets.starFull = loadBase64(`${iconsPath}/star.png`);
+    this.assets.sword = loadBase64(`${iconsPath}/sword.png`);
+
+    log.success("Assets ready.");
+  }
+
+  async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {
+    const clanNames = Object.keys(playersByclan);
+    const page = await this.browser!.newPage();
+
+    const clanA = clanNames[0];
+    const clanB = clanNames[1];
+    const countA = playersByclan[clanA]?.length ?? 0;
+    const countB = playersByclan[clanB]?.length ?? 0;
+    const rows = Math.max(countA, countB);
+
+    const H_card = 460;
+    const H_header = 350;
+
+    const totalHeight = H_header + rows * H_card;
+    const totalWidth = 3000;
+
+    // Telegram limit: Width + Height <= 10000
+    // We calculate a scale factor to fit within this limit (with some margin)
+    const maxTotalDimension = 9000;
+    const currentTotal = totalWidth + totalHeight;
+
+    let scale = 1;
+    if (currentTotal > maxTotalDimension) {
+      scale = maxTotalDimension / currentTotal;
+      log.info(`Scaling war image by ${scale.toFixed(2)} to fit Telegram limits (H=${totalHeight})`);
     }
 
-    public preloadAssets() {
-        log.trace("Preloading assets...");
-        
-        const fontPath = `${this.basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
-        this.assets.font = loadFontBase64(fontPath);
-    
-        const iconsPath = `${this.basePath}/supercell/image_generators/assets/icons`;
-        this.assets.starFull = loadBase64(`${iconsPath}/star.png`);        
-        this.assets.sword = loadBase64(`${iconsPath}/sword.png`);                
-    
-        log.success("Assets ready.");
+    await page.setViewport({
+      width: totalWidth,
+      height: totalHeight,
+      deviceScaleFactor: scale,
+    });
+
+    const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(war, playersByclan)}.jpg`;
+    try {
+      await Deno.stat(file);
+
+      log.trace(`Cache hit for card ${file}`);
+      return file;
+
+    } catch {
+      // Not existing file, go ahead        
     }
 
-    async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {        
-        const clanNames = Object.keys(playersByclan);
-        const page = await this.browser!.newPage();
-    
-        const rows = Math.ceil(clanNames[0].length / 2);
-        const H_card = 460;
-        const H_header = 350;
+    const html = renderWarCardHTML(
+      war, playersByclan, this.assets
+    );
 
-        const totalHeight = H_header + rows * H_card;
+    await page.setContent(html, {
+      waitUntil: ["load", "domcontentloaded"],
+    });
 
-        // Risoluzione retina consigliata
-        await page.setViewport({
-          width: 3000,
-          height: totalHeight,
-          deviceScaleFactor: 1, // => output 2800x920
-        });    
-            
-        const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(war)}.png`;
-        try {
-            await Deno.stat(file);
+    await page.screenshot({ path: file, type: "jpeg", quality: 90 });
+    await page.close();
 
-            log.trace(`Cache hit for card ${file}`);  
-            return file;
-            
-        } catch {
-            // Not existing file, go ahead        
-        }
-    
-        const html = renderWarCardHTML(
-            war, playersByclan, this.assets
-        );
-    
-        await page.setContent(html, {
-            waitUntil: ["load", "domcontentloaded"],
-        });                  
-    
-        await page.screenshot({ path: file });            
-        await page.close();
-    
-        log.trace(`Generated war card ${file}`);
-    
-        this.generationCounter++;
-        if (this.generationCounter >= this.checkCacheEveryGenerations) {
-          this.generationCounter = 0;
-          await this.cleanupOldFiles();
-        }    
-        return file;
+    log.trace(`Generated war card ${file}`);
+
+    this.generationCounter++;
+    if (this.generationCounter >= this.checkCacheEveryGenerations) {
+      this.generationCounter = 0;
+      await this.cleanupOldFiles();
+    }
+    return file;
+  }
+
+  private makeCacheKey(data: WarCardData, playersByClan: WarPlayersByClan): string {
+    const safeName = data.clanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
+    const safeOpponentName = data.opponentClanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
+
+    const clanNames = Object.keys(playersByClan);
+    const countA = playersByClan[clanNames[0]]?.length ?? 0;
+    const countB = playersByClan[clanNames[1]]?.length ?? 0;
+
+    return [
+      `end${unpackedDateTimeSec(new Date(data.endTime))}`,
+      `clan${safeName}`,
+      `oppo${safeOpponentName}`,
+      `dst${data.destruction}`,
+      `odst${data.opponentDestruction}`,
+      `s${data.clanStars}`,
+      `os${data.opponentClanStars}`,
+      `a${data.clanAttacks}`,
+      `oa${data.opponentClanAttacks}`,
+      `p${countA}`,
+      `op${countB}`
+    ].join("_");
+  }
+
+  private async cleanupOldFiles() {
+    const today = unpackedDate();
+    for await (const f of Deno.readDir(this.outputDir)) {
+      if (!f.isFile) continue;
+      if (!f.name.endsWith(".jpg")) continue;
+
+      if (!f.name.startsWith(today)) {
+        await Deno.remove(`${this.outputDir}/${f.name}`);
       }
-    
-    private makeCacheKey(data: WarCardData): string {
-        const safeName = data.clanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
-        const safeOpponentName = data.opponentClanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
-
-        return [          
-          `end${unpackedDateTimeSec(new Date(data.endTime))}`,
-          `clan${safeName}`,
-          `oppo${safeOpponentName}`,
-          `dst${data.destruction}`,
-          `odst${data.opponentDestruction}`,
-          `s${data.clanStars}`,
-          `os${data.opponentClanStars}`,
-          `a${data.clanAttacks}`,
-          `oa${data.opponentClanAttacks}`,
-        ].join("_");
-      }
-    
-      private async cleanupOldFiles() {
-        const today = unpackedDate();
-        for await (const f of Deno.readDir(this.outputDir)) {
-          if (!f.isFile) continue;
-          if (!f.name.endsWith(".png")) continue;
-      
-          if (!f.name.startsWith(today)) {
-            await Deno.remove(`${this.outputDir}/${f.name}`);
-          }
-        }
-      }
+    }
+  }
 }

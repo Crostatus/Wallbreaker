@@ -6,7 +6,7 @@ import { log } from "../../../utility/logger.ts";
 
 
 export class WarPlayerCardGenerator {
-  
+
   private basePath: string;
   private outputDir: string;
 
@@ -17,12 +17,12 @@ export class WarPlayerCardGenerator {
     sword: string;
     townhalls: Record<number, string>;
   } = {
-    font: "",
-    starFull: "",
-    starEmpty: "",
-    sword: "",
-    townhalls: {},
-  };
+      font: "",
+      starFull: "",
+      starEmpty: "",
+      sword: "",
+      townhalls: {},
+    };
 
   private checkCacheEveryGenerations: number = 10;
   private generationCounter: number = 0;
@@ -37,7 +37,7 @@ export class WarPlayerCardGenerator {
 
   public async preloadAssets() {
     log.trace("Preloading assets...");
-    
+
     const fontPath = `${this.basePath}/supercell/image_generators/assets/fonts/Supercell-Magic-Regular.ttf`;
     this.assets.font = loadFontBase64(fontPath);
 
@@ -57,7 +57,7 @@ export class WarPlayerCardGenerator {
 
       this.assets.townhalls[thNumber] = loadBase64(`${thPath}/${f.name}`);
     }
-    
+
     if (!this.assets.townhalls[1]) {
       throw new Error("Townhall 1 missing. Needed as fallback.");
     }
@@ -71,7 +71,6 @@ export class WarPlayerCardGenerator {
   async generate(players: WarPlayerCardData[]): Promise<WarPlayerGeneratedCard[]> {
     //const browser = await this.initBrowser();
     const page = await this.browser!.newPage();
-    console.log(players)
     // Risoluzione retina consigliata
     await page.setViewport({
       width: 1400,
@@ -84,13 +83,13 @@ export class WarPlayerCardGenerator {
       const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(player)}.png`;
       try {
         await Deno.stat(file);
-        
+
         results.push({
           player: player.name,
           position: player.position,
-          filePath: file,          
+          filePath: file,
         });
-        log.trace(`Cache hit for card ${file}`);  
+        log.trace(`Cache hit for card ${file}`);
         continue;
       } catch {
         // Not existing file, go ahead        
@@ -102,13 +101,13 @@ export class WarPlayerCardGenerator {
 
       await page.setContent(html, {
         waitUntil: ["load", "domcontentloaded"],
-      });                  
+      });
 
       await page.screenshot({ path: file });
 
       results.push({
         player: player.name,
-        position: player.position,        
+        position: player.position,
         filePath: file,
       });
     }
@@ -121,13 +120,13 @@ export class WarPlayerCardGenerator {
     if (this.generationCounter >= this.checkCacheEveryGenerations) {
       this.generationCounter = 0;
       await this.cleanupOldFiles();
-    }    
+    }
     return results;
-  } 
+  }
 
   private makeCacheKey(data: WarPlayerCardData): string {
     const safeName = data.name.replace(/[^a-z0-9]/gi, "").toLowerCase();
-  
+
     return [
       `pos${data.position}`,
       `name${safeName}`,
@@ -143,11 +142,11 @@ export class WarPlayerCardGenerator {
     for await (const f of Deno.readDir(this.outputDir)) {
       if (!f.isFile) continue;
       if (!f.name.endsWith(".png")) continue;
-  
+
       if (!f.name.startsWith(today)) {
         await Deno.remove(`${this.outputDir}/${f.name}`);
       }
     }
   }
-    
+
 }
