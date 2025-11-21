@@ -331,7 +331,7 @@ export class WarRepository {
   async getWarMembersForWar(warId: number): Promise<WarCardMemberDBO[]> {
     const sql = `
       SELECT
-        wa.tag_clan
+        wm.tag_clan as clan_tag,
         wm.tag,
         wm.name,
         wm.position,
@@ -410,7 +410,7 @@ export class WarRepository {
         ON def.war_id = wm.war_id
         AND def.tag = a.defender_tag
       WHERE wm.war_id = $1
-        AND wm.tag_clan = $2  
+        AND wm.tag_clan = $2;
     `;
   
     const res = await this.client.query(sql, [warId, clan_tag]);

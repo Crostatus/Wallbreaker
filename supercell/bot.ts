@@ -10,7 +10,7 @@ import { WarPlanner, WarPlanRow } from "./warPlanner.ts";
 
 export class ClashBot {
   private bot: Bot;  
-  private warPlanner = new WarPlanner();
+  //private warPlanner = new WarPlanner();
 
   constructor(token: string, private coc: HttpClashOfClansClient, private repo: Repository, private generator: ClashCardGenerator) {
     this.bot = new Bot(token);
@@ -45,12 +45,7 @@ export class ClashBot {
     });
 
     this.bot.command("suggestwar", async (ctx) => {      
-      const loading = await this.safeReply(ctx, "⏳ Searching for the best plan...");      
-      const plan = await this.generateWarPlan(ctx);
-      
-      await this.safeReply(ctx, formatWarPlanMessage(plan));        
-      
-      await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
+      await this.safeReply(ctx, `Work in progress command... ⏳`);
     });
 
     this.bot.command("untrack", async (ctx) => {
@@ -85,46 +80,46 @@ export class ClashBot {
     });
   }
 
-  private async generateWarPlan(ctx: CommandContext<Context>): Promise<WarPlanRow[]>{
-    const chatId = ctx.chat.id;
+  // private async generateWarPlan(ctx: CommandContext<Context>): Promise<WarPlanRow[]>{
+  //   const chatId = ctx.chat.id;
   
-    const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
-    if (!warHeader) {
-      await this.safeReply(ctx, "No active war found ⚔️");
-      return [];
-    }
+  //   const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
+  //   if (!warHeader) {
+  //     await this.safeReply(ctx, "No active war found ⚔️");
+  //     return [];
+  //   }
 
-    const members: WarCardMemberDBO[] = await this.repo.war.getWarMembersForWar(warHeader.id);    
-    const membersForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.clan_tag)).map(m => { return {
-      name: m.name,
-      townHall: m.town_hall_level,
-      position: m.position,
-      attacksLeft: m.attacks_left, 
-    }});
+  //   const members: WarCardMemberDBO[] = await this.repo.war.getWarMembersForWar(warHeader.id);    
+  //   const membersForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.clan_tag)).map(m => { return {
+  //     name: m.name,
+  //     townHall: m.town_hall_level,
+  //     position: m.position,
+  //     attacksLeft: m.attacks_left, 
+  //   }});
 
-    const opponentsForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.enemy_clan_tag)).map(m => { return {
-      name: m.name,
-      townHall: m.town_hall_level,
-      position: m.position,
-      starsDone: m.best_stars_received,
-    }});
+  //   const opponentsForPlanning = members.filter(m => m.clan_tag!.startsWith(warHeader.enemy_clan_tag)).map(m => { return {
+  //     name: m.name,
+  //     townHall: m.town_hall_level,
+  //     position: m.position,
+  //     starsDone: m.best_stars_received,
+  //   }});
   
-    const attackHistory = await this.repo.war.getClanAttacksPosition(warHeader.id, warHeader.clan_tag);
-    if(attackHistory.length === 0) {      
-      return [];
-    }
+  //   const attackHistory = await this.repo.war.getClanAttacksPosition(warHeader.id, warHeader.clan_tag);
+  //   if(attackHistory.length === 0) {      
+  //     return [];
+  //   }
     
-    const historyForPlanning = attackHistory.map(a => { return {
-      attackerName: a.attacker_name,
-      defenderPosition: a.defender_position,      
-    }});
+  //   const historyForPlanning = attackHistory.map(a => { return {
+  //     attackerName: a.attacker_name,
+  //     defenderPosition: a.defender_position,      
+  //   }});
 
-    return this.warPlanner.planWar({
-      members: membersForPlanning,
-      enemies: opponentsForPlanning,      
-      attacksHistory: historyForPlanning,      
-    });    
-  }
+  //   return this.warPlanner.planWar({
+  //     members: membersForPlanning,
+  //     enemies: opponentsForPlanning,      
+  //     attacksHistory: historyForPlanning,      
+  //   });    
+  // }
 
   start() {
     this.bot.start();
@@ -190,17 +185,20 @@ export class ClashBot {
   async generateWarCard(ctx: CommandContext<Context>, onlyWhatsLeft: boolean) {
     const chatId = ctx.chat.id;
   
+    log.debug(`Generating war card for chat ${chatId}, onlyWhatsLeft=${onlyWhatsLeft}`);
     const warHeader = await this.repo.war.getWarHeaderForChat(chatId);
     if (!warHeader) {
       await this.safeReply(ctx, "No active war found ⚔️");
       return null;
     }    
-  
+      
     const members = await this.repo.war.getWarMembersForWar(warHeader.id);
+    
+    const clanPlayersRaw = members.filter((m: any) => m.clan_tag.startsWith(warHeader.clan_tag));
+    const enemyPlayersRaw = members.filter((m: any) => m.clan_tag.startsWith(warHeader.enemy_clan_tag));
   
-    const clanPlayersRaw = members.filter((m: any) => m.tag.startsWith(warHeader.clan_tag));
-    const enemyPlayersRaw = members.filter((m: any) => m.tag.startsWith(warHeader.enemy_clan_tag));
-  
+    //console.log(clanPlayersRaw);
+    //console.log(enemyPlayersRaw);
     const filteredClan = onlyWhatsLeft
       ? clanPlayersRaw.filter((m: any) => m.attacks_left > 0)
       : clanPlayersRaw;
@@ -208,7 +206,7 @@ export class ClashBot {
     const filteredEnemy = onlyWhatsLeft
       ? enemyPlayersRaw.filter((m: any) => m.best_stars_received < 3)
       : enemyPlayersRaw;
-  
+    
     const mapPlayer = (m: any) => ({
       position: m.position,
       name: m.name,
@@ -222,9 +220,9 @@ export class ClashBot {
     
     const sortedClan = filteredClan.sort((a: WarCardMemberDBO, b: WarCardMemberDBO) => a.position - b.position).map(mapPlayer);
     const sortedEnemy = filteredEnemy.sort((a: WarCardMemberDBO, b: WarCardMemberDBO) => a.position - b.position).map(mapPlayer);
-  
-    playersByClan[warHeader.clan_name] = await this.generator.generateWarCards(sortedClan.map(mapPlayer));
-    playersByClan[warHeader.enemy_clan_name] = await this.generator.generateWarCards(sortedEnemy.map(mapPlayer));
+
+    playersByClan[warHeader.clan_name] = await this.generator.generateWarCards(sortedClan);
+    playersByClan[warHeader.enemy_clan_name] = await this.generator.generateWarCards(sortedEnemy);
   
     const warCardData = {
       clanName: warHeader.clan_name,

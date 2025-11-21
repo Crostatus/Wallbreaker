@@ -17,7 +17,7 @@ interface NotifiedFile {
 
 export class WarStateManager {
     private warSnapshots = new Map<number, AttackKey[]>();
-    private basePath = "./state";
+    private basePath = "./output/war_notifications";
     private TTL_MS = 9 * 24 * 60 * 60 * 1000;
 
     constructor() {

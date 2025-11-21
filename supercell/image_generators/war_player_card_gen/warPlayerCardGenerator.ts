@@ -71,7 +71,7 @@ export class WarPlayerCardGenerator {
   async generate(players: WarPlayerCardData[]): Promise<WarPlayerGeneratedCard[]> {
     //const browser = await this.initBrowser();
     const page = await this.browser!.newPage();
-
+    console.log(players)
     // Risoluzione retina consigliata
     await page.setViewport({
       width: 1400,

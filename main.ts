@@ -1,3 +1,4 @@
+import { WarImageGenerator } from './supercell/image_generators/war_gen/warImageGenerator';
 import { ClashCardGenerator } from './supercell/image_generators/clashCardGenerator.ts';
 import { HttpClashOfClansClient } from './supercell/httpClashOfClansClient.ts';
 import { config } from "https://deno.land/x/dotenv/mod.ts";
@@ -20,10 +21,12 @@ setupShutdownHandlers(repo);
 
 await repo.connect();
 const api = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
+const imageGenerator = new ClashCardGenerator();
+imageGenerator.init();
 
 let bot : ClashBot | null = null;
 if(env.TELEGRAM_KEY) {
-    bot = new ClashBot(env.TELEGRAM_KEY, api, repo, new ClashCardGenerator());
+    bot = new ClashBot(env.TELEGRAM_KEY, api, repo, imageGenerator);
     bot.start();    
 }
 else {
@@ -37,7 +40,7 @@ startClanUpdateTask(repo, api, {
     staleHours: 12,
 });
 startWarDiscoveryTask(repo, api, {
-    intervalMinutes: 15,
+    intervalMinutes: 1,
 });
 startWarAttackUpdateTask(repo, api, warState, bot, {
     intervalSeconds: 10,

@@ -1,5 +1,5 @@
 import { Browser } from "https://deno.land/x/puppeteer@16.2.0/mod.ts";
-import { loadBase64, loadFontBase64, unpackedDate } from "../../../utility/formatting.ts";
+import { loadBase64, loadFontBase64, unpackedDate, unpackedDateTimeSec } from "../../../utility/formatting.ts";
 import { log } from "../../../utility/logger.ts";
 import { WarCardData, WarPlayersByClan } from "./types.ts";
 import { renderWarCardHTML } from "./template.ts";
@@ -96,7 +96,7 @@ export class WarImageGenerator {
         const safeOpponentName = data.opponentClanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
         return [          
-          `end${data.endTime}`,
+          `end${unpackedDateTimeSec(new Date(data.endTime))}`,
           `clan${safeName}`,
           `oppo${safeOpponentName}`,
           `dst${data.destruction}`,

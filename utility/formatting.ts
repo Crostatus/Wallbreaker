@@ -35,7 +35,8 @@ export function formatWarAttackNotification(
       `${percentToBar(summary.clanPercentage)}  ${summary.clanStars}⭐`,
       `*${opponentClanName}*`,
       `${percentToBar(summary.oppPercentage)}  ${summary.oppStars}⭐`,
-      `-----------------------------------------`,
+      ``,      
+      ` `,
       ` `,
     ].join("\n");
     
@@ -46,7 +47,8 @@ export function formatWarAttackNotification(
         `⚔`,
         `${a.defender_position}. ${a.defender_name}`,
         `${percentToBar(a.percentage, 8)} ${`⭐`.repeat(a.stars)}${`✩`.repeat(3 - a.stars)} (${gained})`,        
-        `-----------------------------------------`,
+        ``,
+        ``,
       ].join("\n");
     }).join("\n");
 
@@ -94,8 +96,8 @@ export function loadBase64(path: string): string {
   return `data:image/png;base64,${btoa(binary)}`;
 }
 
-export function unpackedDateTimeSec(): string {
-  const d = new Date();
+export function unpackedDateTimeSec(d: Date = new Date()): string {
+  //const d = new Date();
 
   const yyyy = d.getFullYear();
   const mm   = String(d.getMonth() + 1).padStart(2, "0");
