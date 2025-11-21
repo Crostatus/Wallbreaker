@@ -146,10 +146,20 @@ export function renderWarPlayerCardHTML(
     display: flex;
     gap: 20px;
     margin-top: 14px;
+    align-items: center;
   }
 
   .attacks-row img {
     width: 180px;
+  }
+
+  .position-big {
+    font-family: 'ClashBold';
+    font-size: 100px;
+    color: #fff;
+    text-shadow: 4px 4px 0 #000;
+    margin-right: 20px;
+    line-height: 1;
   }
 
 </style>
@@ -172,16 +182,15 @@ export function renderWarPlayerCardHTML(
       <!-- badge + name -->
       <div class="left-block">
         <div class="left-top">
-          <div class="badge">#${data.position}</div>
           <div class="name">${data.name}</div>
         </div>
       </div>
 
       <!-- stelle -->
       <div class="stars">
-        ${[1,2,3].map(i =>
-          `<img src="${i <= data.stars ? assets.starFull : assets.starEmpty}">`
-        ).join("")}
+        ${[1, 2, 3].map(i =>
+    `<img src="${i <= data.stars ? assets.starFull : assets.starEmpty}">`
+  ).join("")}
       </div>
 
     </div>
@@ -201,9 +210,10 @@ export function renderWarPlayerCardHTML(
 
     <!-- SPADINE -->
     <div class="attacks-row">
+      <div class="position-big">${data.position}</div>
       ${Array.from({ length: data.attacksLeft }).map(() =>
-        `<img src="${assets.sword}">`
-      ).join("")}
+    `<img src="${assets.sword}">`
+  ).join("")}
     </div>
 
   </div>
