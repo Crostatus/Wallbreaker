@@ -8,10 +8,10 @@ import { WarCardData, WarPlayersByClan } from "./war_gen/types.ts";
 export class ClashCardGenerator {
     private browser: Browser | null = null;
     private lock: Promise<void> = Promise.resolve();
-    private unlock: () => void = () => {};
+    private unlock: () => void = () => { };
 
     private warPlayerCard: WarPlayerCardGenerator | null = null;
-    private warImg : WarImageGenerator | null = null;
+    private warImg: WarImageGenerator | null = null;
     private basePath: string;
     private cardOutputDir: string;
     private warOutputDir: string;
@@ -50,21 +50,21 @@ export class ClashCardGenerator {
             const executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";//Deno.env.get("PUPPETEER_EXECUTABLE_PATH");
 
             this.browser = await puppeteer.launch({
-            headless: true,
-            executablePath,
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-gpu",
-                "--disable-web-security",
-                "--allow-file-access-from-files",
-                "--allow-file-access",
-                "--enable-local-file-accesses",
-                "--allow-cross-origin-auth-prompt",
-                "--disable-features=IsolateOrigins,site-per-process",
-                "--disable-site-isolation-trials",
-                `--user-data-dir=${Deno.cwd()}/.chrome-profile`,
-            ],        
+                headless: true,
+                executablePath,
+                args: [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-gpu",
+                    "--disable-web-security",
+                    "--allow-file-access-from-files",
+                    "--allow-file-access",
+                    "--enable-local-file-accesses",
+                    "--allow-cross-origin-auth-prompt",
+                    "--disable-features=IsolateOrigins,site-per-process",
+                    "--disable-site-isolation-trials",
+                    `--user-data-dir=${Deno.cwd()}/.chrome-profile`,
+                ],
             });
         }
         return this.browser;
@@ -77,18 +77,18 @@ export class ClashCardGenerator {
         }
     }
 
-    private async acquireLock() {        
+    private async acquireLock() {
         const nextLock = new Promise<void>((resolve) => {
-          this.unlock = resolve;
-        });      
-        
+            this.unlock = resolve;
+        });
+
         const previous = this.lock;
         this.lock = nextLock;
-              
+
         await previous;
-            
-        return () => {      
-          this.unlock();
+
+        return () => {
+            this.unlock();
         };
     }
 
@@ -106,7 +106,7 @@ export class ClashCardGenerator {
         }
     }
 
-    async generateWarImage(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {
+    async generateWarImage(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string[]> {
         if (!this.warImg) {
             throw new Error("WarImageGenerator not initialized. Call init() first.");
         }

@@ -42,72 +42,91 @@ export class WarImageGenerator {
     log.success("Assets ready.");
   }
 
-  async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string> {
+  async generate(war: WarCardData, playersByclan: WarPlayersByClan): Promise<string[]> {
     const clanNames = Object.keys(playersByclan);
-    const page = await this.browser!.newPage();
-
     const clanA = clanNames[0];
     const clanB = clanNames[1];
-    const countA = playersByclan[clanA]?.length ?? 0;
-    const countB = playersByclan[clanB]?.length ?? 0;
-    const rows = Math.max(countA, countB);
 
-    const H_card = 460;
-    const H_header = 350;
+    const allPlayersA = playersByclan[clanA] ?? [];
+    const allPlayersB = playersByclan[clanB] ?? [];
 
-    const totalHeight = H_header + rows * H_card;
-    const totalWidth = 3000;
+    const countA = allPlayersA.length;
+    const countB = allPlayersB.length;
+    const maxPlayers = Math.max(countA, countB);
 
-    // Telegram limit: Width + Height <= 10000
-    // We calculate a scale factor to fit within this limit (with some margin)
-    const maxTotalDimension = 9000;
-    const currentTotal = totalWidth + totalHeight;
+    const pageSize = 10;
+    const totalPages = Math.max(1, Math.ceil(maxPlayers / pageSize));
 
-    let scale = 1;
-    if (currentTotal > maxTotalDimension) {
-      scale = maxTotalDimension / currentTotal;
-      log.info(`Scaling war image by ${scale.toFixed(2)} to fit Telegram limits (H=${totalHeight})`);
+    const generatedFiles: string[] = [];
+
+    for (let i = 0; i < totalPages; i++) {
+      const start = i * pageSize;
+      const end = start + pageSize;
+
+      const sliceA = allPlayersA.slice(start, end);
+      const sliceB = allPlayersB.slice(start, end);
+
+      const chunkPlayers: WarPlayersByClan = {
+        [clanA]: sliceA,
+        [clanB]: sliceB
+      };
+
+      const rows = Math.max(sliceA.length, sliceB.length);
+      const H_card = 460;
+      const H_header = 350;
+
+      const totalHeight = H_header + rows * H_card;
+      const totalWidth = 3000;
+
+      // Telegram limit: Width + Height <= 10000
+      const maxTotalDimension = 9000;
+      const currentTotal = totalWidth + totalHeight;
+
+      let scale = 1;
+      if (currentTotal > maxTotalDimension) {
+        scale = maxTotalDimension / currentTotal;
+        log.info(`Scaling war image page ${i + 1}/${totalPages} by ${scale.toFixed(2)}`);
+      }
+
+      const page = await this.browser!.newPage();
+      await page.setViewport({
+        width: totalWidth,
+        height: totalHeight,
+        deviceScaleFactor: scale,
+      });
+
+      const cacheKey = this.makeCacheKey(war, chunkPlayers, i, totalPages);
+      const file = `${this.outputDir}/${unpackedDate()}_${cacheKey}.jpg`;
+
+      let cacheHit = false;
+      try {
+        await Deno.stat(file);
+        log.trace(`Cache hit for card ${file}`);
+        cacheHit = true;
+      } catch {
+        // Not existing file
+      }
+
+      if (!cacheHit) {
+        const html = renderWarCardHTML(war, chunkPlayers, this.assets);
+        await page.setContent(html, { waitUntil: ["load", "domcontentloaded"] });
+        await page.screenshot({ path: file, type: "jpeg", quality: 90 });
+        log.trace(`Generated war card ${file}`);
+      }
+
+      await page.close();
+      generatedFiles.push(file);
     }
-
-    await page.setViewport({
-      width: totalWidth,
-      height: totalHeight,
-      deviceScaleFactor: scale,
-    });
-
-    const file = `${this.outputDir}/${unpackedDate()}_${this.makeCacheKey(war, playersByclan)}.jpg`;
-    try {
-      await Deno.stat(file);
-
-      log.trace(`Cache hit for card ${file}`);
-      return file;
-
-    } catch {
-      // Not existing file, go ahead        
-    }
-
-    const html = renderWarCardHTML(
-      war, playersByclan, this.assets
-    );
-
-    await page.setContent(html, {
-      waitUntil: ["load", "domcontentloaded"],
-    });
-
-    await page.screenshot({ path: file, type: "jpeg", quality: 90 });
-    await page.close();
-
-    log.trace(`Generated war card ${file}`);
 
     this.generationCounter++;
     if (this.generationCounter >= this.checkCacheEveryGenerations) {
       this.generationCounter = 0;
       await this.cleanupOldFiles();
     }
-    return file;
+    return generatedFiles;
   }
 
-  private makeCacheKey(data: WarCardData, playersByClan: WarPlayersByClan): string {
+  private makeCacheKey(data: WarCardData, playersByClan: WarPlayersByClan, pageIndex: number, totalPages: number): string {
     const safeName = data.clanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
     const safeOpponentName = data.opponentClanName.replace(/[^a-z0-9]/gi, "").toLowerCase();
 
@@ -126,7 +145,9 @@ export class WarImageGenerator {
       `a${data.clanAttacks}`,
       `oa${data.opponentClanAttacks}`,
       `p${countA}`,
-      `op${countB}`
+      `op${countB}`,
+      `pg${pageIndex}`,
+      `tot${totalPages}`
     ].join("_");
   }
 

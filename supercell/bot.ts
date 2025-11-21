@@ -59,18 +59,30 @@ export class ClashBot {
 
     this.bot.command("war", async (ctx) => {
       const loading = await this.safeReply(ctx, "⏳ Generating war report...");
-      const file = await this.generateWarCard(ctx, false);
-      if (file) {
-        await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(file)));
+      const files = await this.generateWarCard(ctx, false);
+      if (files && files.length > 0) {
+        if (files.length === 1) {
+          await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(files[0])));
+        } else {
+          const mediaGroup = files.map(f => ({ type: "photo", media: new InputFile(f) }));
+          // @ts-ignore
+          await this.safeTelegramCall(() => ctx.replyWithMediaGroup(mediaGroup));
+        }
       }
       await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
     });
 
     this.bot.command("warleft", async (ctx) => {
       const loading = await this.safeReply(ctx, "⏳ Generating remaining war report...");
-      const file = await this.generateWarCard(ctx, true);
-      if (file) {
-        await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(file)));
+      const files = await this.generateWarCard(ctx, true);
+      if (files && files.length > 0) {
+        if (files.length === 1) {
+          await this.safeTelegramCall(() => ctx.replyWithPhoto(new InputFile(files[0])));
+        } else {
+          const mediaGroup = files.map(f => ({ type: "photo", media: new InputFile(f) }));
+          // @ts-ignore
+          await this.safeTelegramCall(() => ctx.replyWithMediaGroup(mediaGroup));
+        }
       }
       await this.safeTelegramCall(() => ctx.api.deleteMessage(ctx.chat.id, loading.message_id));
     });
