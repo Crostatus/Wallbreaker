@@ -5,6 +5,7 @@ import { WarImageGenerator } from "./war_gen/warImageGenerator.ts";
 import { WarCardData, WarPlayersByClan } from "./war_gen/types.ts";
 
 
+
 export class ClashCardGenerator {
     private browser: Browser | null = null;
     private lock: Promise<void> = Promise.resolve();
@@ -47,7 +48,7 @@ export class ClashCardGenerator {
 
     private async initBrowser() {
         if (!this.browser) {
-            const executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";//Deno.env.get("PUPPETEER_EXECUTABLE_PATH");
+            const executablePath = Deno.env.get("PUPPETEER_EXECUTABLE_PATH") ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
             this.browser = await puppeteer.launch({
                 headless: true,
@@ -63,7 +64,7 @@ export class ClashCardGenerator {
                     "--allow-cross-origin-auth-prompt",
                     "--disable-features=IsolateOrigins,site-per-process",
                     "--disable-site-isolation-trials",
-                    `--user-data-dir=${Deno.cwd()}/.chrome-profile`,
+                    "--disable-dev-shm-usage",
                 ],
             });
         }

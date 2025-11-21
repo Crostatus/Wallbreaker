@@ -20,14 +20,15 @@ const repo = new Repository();
 setupShutdownHandlers(repo);
 
 await repo.connect();
-const api = new HttpClashOfClansClient(env.SUPERCELL_KEY!);
+const api = new HttpClashOfClansClient(Deno.env.get("SUPERCELL_KEY") || env.SUPERCELL_KEY!);
 const imageGenerator = new ClashCardGenerator();
 imageGenerator.init();
 
-let bot : ClashBot | null = null;
-if(env.TELEGRAM_KEY) {
-    bot = new ClashBot(env.TELEGRAM_KEY, api, repo, imageGenerator);
-    bot.start();    
+let bot: ClashBot | null = null;
+const telegramKey = Deno.env.get("TELEGRAM_KEY") || env.TELEGRAM_KEY;
+if (telegramKey) {
+    bot = new ClashBot(telegramKey, api, repo, imageGenerator);
+    bot.start();
 }
 else {
     log.warn("No TELEGRAM_KEY detected, telegram bot disable");
@@ -46,5 +47,5 @@ startWarAttackUpdateTask(repo, api, warState, bot, {
     intervalSeconds: 10,
     ifWarCheckEverySeconds: 60,
 });
-  
+
 log.info("Background tasks up and running!");

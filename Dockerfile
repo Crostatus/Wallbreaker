@@ -1,4 +1,4 @@
-FROM denoland/deno:2.0.0
+FROM denoland/deno:2.5.4
 
 RUN apt-get update && apt-get install -y \
     chromium \
@@ -26,6 +26,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN deno cache main.ts
+RUN deno cache --allow-import main.ts
 
-CMD ["run", "-A", "main.ts"]
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
