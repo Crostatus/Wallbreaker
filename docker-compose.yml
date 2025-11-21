@@ -32,6 +32,8 @@ services:
       - SUPERCELL_KEY=${SUPERCELL_KEY}
       - TELEGRAM_KEY=${TELEGRAM_KEY}
       - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    volumes:
+      - .:/app
 
 volumes:
   pgdata:

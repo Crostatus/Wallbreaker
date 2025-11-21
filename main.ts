@@ -41,10 +41,10 @@ startClanUpdateTask(repo, api, {
     staleHours: 12,
 });
 startWarDiscoveryTask(repo, api, {
-    intervalMinutes: 1,
+    intervalMinutes: 15,
 });
 startWarAttackUpdateTask(repo, api, warState, bot, {
-    intervalSeconds: 10,
+    intervalSeconds: 30,
     ifWarCheckEverySeconds: 60,
 });
 
